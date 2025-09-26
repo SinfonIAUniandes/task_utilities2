@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import rclpy
-import threading
-import time
 from rclpy.node import Node
 
 # Note: This script assumes that the 'speech_msgs2' and 'std_srvs' packages,
@@ -12,115 +10,63 @@ from naoqi_utilities_msgs.srv import Say
 from std_srvs.srv import Trigger
 
 
-class Speech:
+class Speech(Node):
     """
     A Python class to interact with speech and conversation ROS2 nodes.
-    
-    This class can either create its own ROS2 node for simple, standalone use
-    or accept an existing node object to be part of a larger application.
     """
 
     def __init__(self,
-                 node: Node | None = None,
                  microphone_node_name="microphone_node",
-                 conversation_node_name="conversation_node",
-                 wait_for_services=True,
-                 timeout_sec=5.0):
+                 conversation_node_name="conversation_node"):
         """
         Initializes the Speech API object.
 
         Args:
-            node (rclpy.node.Node | None): An existing ROS2 node. If provided,
-                the class will use it for all communications. If None, a new
-                node will be created and managed internally.
             microphone_node_name (str): The name of the microphone node.
             conversation_node_name (str): The name of the conversation node.
-            wait_for_services (bool): If True, blocks until all services are available.
-            timeout_sec (float): Timeout in seconds for waiting for services.
         """
-        self._external_node = node is not None
-        self._executor = None
+        super().__init__('speech_api_client')
         
-        if self._external_node:
-            self._node = node
-        else:
-            # If no node is passed, create and manage one internally.
-            if not rclpy.ok():
-                rclpy.init()
-            self._node = rclpy.create_node("speech_api_client")
-            self._executor = rclpy.executors.SingleThreadedExecutor()
-            self._executor.add_node(self._node)
-            # Spin the internal executor in a thread to not block the main application
-            threading.Thread(target=self._executor.spin, daemon=True).start()
+        # Create service clients
+        self.stt_client = self.create_client(SpeechToText, f"/{microphone_node_name}/speech_to_text")
+        self.record_client = self.create_client(RecordAudio, f"/{microphone_node_name}/record_audio")
+        self.transcription_mode_client = self.create_client(SetTranscriptionMode, f"/{microphone_node_name}/set_transcription_mode")
+        self.llm_settings_client = self.create_client(SetLLMSettings, f"/{conversation_node_name}/set_llm_settings")
+        self.llm_response_client = self.create_client(LLMResponse, f"/{conversation_node_name}/llm_response")
+        self.llm_clear_history_client = self.create_client(Trigger, f"/{conversation_node_name}/clear_llm_history")
+        self.say_client = self.create_client(Say, "/naoqi_speech_node/say")
 
-        self._logger = self._node.get_logger()
+        # Wait for services to be available
+        self.wait_for_services()
         
-        # --- Client definitions ---
-        clients = {
-            'stt': (SpeechToText, f"/{microphone_node_name}/speech_to_text"),
-            'record': (RecordAudio, f"/{microphone_node_name}/record_audio"),
-            'transcription_mode': (SetTranscriptionMode, f"/{microphone_node_name}/set_transcription_mode"),
-            'llm_settings': (SetLLMSettings, f"/{conversation_node_name}/set_llm_settings"),
-            'llm_response': (LLMResponse, f"/{conversation_node_name}/llm_response"),
-            'llm_clear_history': (Trigger, f"/{conversation_node_name}/clear_llm_history"),
-            'say': (Say, f"/naoqi_speech_node/say"),
-        }
+        self.get_logger().info("Speech API initialized.")
 
-        self._clients = {}
-        for name, (srv_type, srv_name) in clients.items():
-            self._clients[name] = self._node.create_client(srv_type, srv_name)
-
-        if wait_for_services:
-            self.wait_for_all_services(timeout_sec)
+    def wait_for_services(self):
+        """Waits for all services to become available."""
+        self.get_logger().info("Waiting for services...")
         
-        self._logger.info(f"Speech API initialized. Using {'external' if self._external_node else 'internal'} node.")
-
-    def wait_for_all_services(self, timeout_sec=5.0):
-        """Waits for all defined services to become available."""
-        self._logger.info("Waiting for services...")
-        for name, client in self._clients.items():
-            if not client.wait_for_service(timeout_sec=timeout_sec):
-                self._logger.error(f"Service '{client.srv_name}' not available after {timeout_sec}s.")
-        self._logger.info("All services are available.")
-
-    def _call_service(self, client_name, request, timeout_sec=60.0):
-        """Generic helper method to call a service and wait for the response."""
-        client = self._clients.get(client_name)
-        if not client or not client.service_is_ready():
-            self._logger.error(f"Service '{client.srv_name if client else client_name}' is not available.")
-            return None
-
-        # The calling application is responsible for spinning the node so that
-        # the future can complete.
-        future = client.call_async(request)
-        start_time = time.time()
-        while not future.done():
-            if time.time() - start_time > timeout_sec:
-                self._logger.error(f"Service call for '{client.srv_name}' timed out after {timeout_sec}s.")
-                return None
-            time.sleep(0.05)
-        
-        try:
-            return future.result()
-        except Exception as e:
-            self._logger.error(f"Service call for '{client.srv_name}' failed: {e}")
-            return None
-
-    def shutdown(self):
-        """
-        Shuts down resources created by this instance.
-        If an external node was provided, this method does nothing to the node.
-        """
-        if not self._external_node:
-            self._logger.info("Shutting down internally managed Speech API client node.")
-            if self._executor:
-                self._executor.shutdown()
-            if self._node:
-                self._node.destroy_node()
-        else:
-            self._logger.info("Speech API instance detached. Node lifecycle is managed externally.")
-
-    # ... (All other methods like listen, record_audio, ask, etc., remain exactly the same) ...
+        while not self.stt_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('speech_to_text service not available, waiting again...')
+            
+        while not self.record_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('record_audio service not available, waiting again...')
+            
+        while not self.transcription_mode_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('set_transcription_mode service not available, waiting again...')
+            
+        while not self.llm_settings_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('set_llm_settings service not available, waiting again...')
+            
+        while not self.llm_response_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('llm_response service not available, waiting again...')
+            
+        while not self.llm_clear_history_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('clear_llm_history service not available, waiting again...')
+            
+        while not self.say_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('say service not available, waiting again...')
+            
+        self.get_logger().info("All services are available.")
 
     ##
     # Microphone Node Methods
@@ -137,13 +83,21 @@ class Speech:
         Returns:
             The transcribed text as a string, or None if an error occurred.
         """
-        self._logger.info(f"Calling speech_to_text service (autocut={autocut}, timeout={timeout})...")
-        request = SpeechToText.Request(autocut=autocut, timeout=int(timeout))
-        response = self._call_service('stt', request)
-        if response:
-            self._logger.info(f"Transcription received: '{response.transcription}'")
+        self.get_logger().info(f"Calling speech_to_text service (autocut={autocut}, timeout={timeout})...")
+        request = SpeechToText.Request()
+        request.autocut = autocut
+        request.timeout = int(timeout)
+        
+        future = self.stt_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        
+        if future.result() is not None:
+            response = future.result()
+            self.get_logger().info(f"Transcription received: '{response.transcription}'")
             return response.transcription
-        return None
+        else:
+            self.get_logger().error("Failed to get response from speech_to_text service")
+            return None
 
     def record_audio(self, file_name, duration=0.0) -> bool:
         """
@@ -156,10 +110,20 @@ class Speech:
         Returns:
             True if recording was successful, False otherwise.
         """
-        self._logger.info(f"Calling record_audio service (file='{file_name}', duration={duration})...")
-        request = RecordAudio.Request(file_name=file_name, duration=float(duration))
-        response = self._call_service('record', request)
-        return response.success if response else False
+        self.get_logger().info(f"Calling record_audio service (file='{file_name}', duration={duration})...")
+        request = RecordAudio.Request()
+        request.file_name = file_name
+        request.duration = float(duration)
+        
+        future = self.record_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        
+        if future.result() is not None:
+            response = future.result()
+            return response.success
+        else:
+            self.get_logger().error("Failed to get response from record_audio service")
+            return False
 
     def set_transcription_mode(self, enabled, language='en') -> tuple[bool, str] | None:
         """
@@ -172,12 +136,20 @@ class Speech:
         Returns:
             A tuple (success, message), or None on failure.
         """
-        self._logger.info(f"Setting transcription mode to {enabled} for language '{language}'...")
-        request = SetTranscriptionMode.Request(state=enabled, language=language)
-        response = self._call_service('transcription_mode', request)
-        if response:
+        self.get_logger().info(f"Setting transcription mode to {enabled} for language '{language}'...")
+        request = SetTranscriptionMode.Request()
+        request.state = enabled
+        request.language = language
+        
+        future = self.transcription_mode_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        
+        if future.result() is not None:
+            response = future.result()
             return response.success, response.message
-        return None
+        else:
+            self.get_logger().error("Failed to get response from set_transcription_mode service")
+            return None
 
     ##
     # Conversation Node Methods
@@ -197,19 +169,24 @@ class Speech:
         Returns:
             True if settings were updated successfully, False otherwise.
         """
-        self._logger.info("Updating LLM settings...")
-        request = SetLLMSettings.Request(
-            model_name=model_name,
-            model_provider=model_provider,
-            temperature=float(temperature),
-            max_tokens=int(max_tokens),
-            context=context
-        )
-        response = self._call_service('llm_settings', request)
-        if response:
-            self._logger.info(f"LLM settings update status: {response.message}")
+        self.get_logger().info("Updating LLM settings...")
+        request = SetLLMSettings.Request()
+        request.model_name = model_name
+        request.model_provider = model_provider
+        request.temperature = float(temperature)
+        request.max_tokens = int(max_tokens)
+        request.context = context
+        
+        future = self.llm_settings_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        
+        if future.result() is not None:
+            response = future.result()
+            self.get_logger().info(f"LLM settings update status: {response.message}")
             return response.success
-        return False
+        else:
+            self.get_logger().error("Failed to get response from set_llm_settings service")
+            return False
 
     def ask(self, prompt) -> str:
         """
@@ -221,13 +198,20 @@ class Speech:
         Returns:
             The LLM's answer, or an error message if it failed.
         """
-        self._logger.info(f"Sending prompt to LLM: '{prompt}'")
-        request = LLMResponse.Request(prompt=prompt)
-        response = self._call_service('llm_response', request)
-        if response:
-            self._logger.info(f"LLM response received: '{response.answer}'")
+        self.get_logger().info(f"Sending prompt to LLM: '{prompt}'")
+        request = LLMResponse.Request()
+        request.prompt = prompt
+        
+        future = self.llm_response_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        
+        if future.result() is not None:
+            response = future.result()
+            self.get_logger().info(f"LLM response received: '{response.answer}'")
             return response.answer
-        return "Error: Failed to get a response from the LLM service."
+        else:
+            self.get_logger().error("Failed to get response from llm_response service")
+            return "Error: Failed to get a response from the LLM service."
 
     def clear_conversation_history(self) -> bool:
         """
@@ -236,17 +220,19 @@ class Speech:
         Returns:
             True if the history was cleared successfully, False otherwise.
         """
-        self._logger.info("Clearing LLM conversation history...")
+        self.get_logger().info("Clearing LLM conversation history...")
         request = Trigger.Request()
-        response = self._call_service('llm_clear_history', request)
-        if response:
-            self._logger.info(f"Clear history status: {response.message}")
+        
+        future = self.llm_clear_history_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        
+        if future.result() is not None:
+            response = future.result()
+            self.get_logger().info(f"Clear history status: {response.message}")
             return response.success
-        return False
-
-    ##
-    # Conversation Node Methods
-    ##
+        else:
+            self.get_logger().error("Failed to get response from clear_llm_history service")
+            return False
 
     def say(self, text_say: str, language_say="English", animated_say=False, asynchronous_say=True) -> bool:
         """
@@ -255,11 +241,20 @@ class Speech:
         Returns:
             True if the robot said the text correctly, False otherwise.
         """
-        self._logger.info("Robot is going to start speaking")
-        request = Say.Request(text=text_say, language=language_say, animated=animated_say, asynchronous=asynchronous_say)
-        response = self._call_service('say', request,timeout_sec=10)
+        self.get_logger().info("Robot is going to start speaking")
+        request = Say.Request()
+        request.text = text_say
+        request.language = language_say
+        request.animated = animated_say
+        request.asynchronous = asynchronous_say
         
-        if response:
-            self._logger.info(f"Speaking status: {response.message}")
+        future = self.say_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+        
+        if future.result() is not None:
+            response = future.result()
+            self.get_logger().info(f"Speaking status: {response.message}")
             return response.success
-        return False
+        else:
+            self.get_logger().error("Failed to get response from say service")
+            return False

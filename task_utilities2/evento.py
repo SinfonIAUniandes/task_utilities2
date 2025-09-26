@@ -19,12 +19,10 @@ class RobotInteractionNode(Node):
     def __init__(self):
         super().__init__('robot_interaction_node')
         
-        # 1. Instantiate the Speech API, passing this node object.
-        # This allows the Speech class to use this node's clients and logger
-        # without creating a separate, new node.
+        # 1. Instantiate the Speech API - it creates its own node now
         self.get_logger().info("Initializing the Speech API...")
         try:
-            self.speech = Speech(node=self)
+            self.speech = Speech()
             self.get_logger().info("Speech API initialized successfully. 🤖")
         except Exception as e:
             self.get_logger().fatal(f"Could not initialize Speech API: {e}")
@@ -86,19 +84,17 @@ class RobotInteractionNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     
-    # Create and spin the node. The node's internal logic handles shutting down.
-    interaction_node = RobotInteractionNode()
-    interaction_node.run_interaction_logic()
-    
-    
     try:
-        rclpy.spin(interaction_node)
+        # Create and run the interaction node
+        interaction_node = RobotInteractionNode()
+        interaction_node.run_interaction_logic()
+        
     except KeyboardInterrupt:
-        interaction_node.get_logger().info("Keyboard interrupt, shutting down.")
+        print("Keyboard interrupt, shutting down.")
     finally:
-        # Ensure the node is destroyed on exit
+        # Cleanup
         if rclpy.ok():
-            interaction_node.destroy_node()
+            rclpy.shutdown()
     
 
 
