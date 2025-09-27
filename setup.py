@@ -20,10 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'evento_node = task_utilities2.event_realtime:main',
-            'speech_example = task_utilities2.simple_speech_example:main',
             'speech_task_simple = task_utilities2.simple_task_module_example:main',
-            'realtime_event = task_utilities2.event_realtime_with_task_module:main'
+            'realtime_event = task_utilities2.event_realtime_with_task_module:main',
+            'miscellaneous_example'
         ],
     },
 )

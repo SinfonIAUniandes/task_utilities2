@@ -27,9 +27,6 @@ class NavigationProxy:
         self.node = parent_node
         self.navigation_node_name = navigation_node_name
         
-        # TODO: Import required service types when available
-        # from navigation_msgs.srv import MoveTo, SetPose, GetPose
-        
         # TODO: Create service clients using the parent node
         # self.move_to_client = self.node.create_client(MoveTo, f"/{navigation_node_name}/move_to")
         # self.set_pose_client = self.node.create_client(SetPose, f"/{navigation_node_name}/set_pose")

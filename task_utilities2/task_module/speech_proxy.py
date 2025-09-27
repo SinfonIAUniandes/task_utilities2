@@ -72,7 +72,6 @@ class SpeechProxy:
         Returns:
             The transcribed text as a string, or None if an error occurred.
         """
-        from speech_msgs2.srv import SpeechToText
         
         self.node.get_logger().info(f"Calling speech_to_text service (autocut={autocut}, timeout={timeout})...")
         request = SpeechToText.Request()
@@ -93,7 +92,6 @@ class SpeechProxy:
         Returns:
             True if recording was successful, False otherwise.
         """
-        from speech_msgs2.srv import RecordAudio
         
         self.node.get_logger().info(f"Calling record_audio service (file='{file_name}', duration={duration})...")
         request = RecordAudio.Request()
@@ -114,7 +112,6 @@ class SpeechProxy:
         Returns:
             True if successful, False otherwise.
         """
-        from speech_msgs2.srv import SetTranscriptionMode
         
         self.node.get_logger().info(f"Setting transcription mode to {enabled} for language '{language}'...")
         request = SetTranscriptionMode.Request()
@@ -139,7 +136,6 @@ class SpeechProxy:
         Returns:
             True if settings were updated successfully, False otherwise.
         """
-        from speech_msgs2.srv import SetLLMSettings
         
         self.node.get_logger().info("Updating LLM settings...")
         request = SetLLMSettings.Request()
@@ -162,7 +158,6 @@ class SpeechProxy:
         Returns:
             The LLM's answer, or an error message if it failed.
         """
-        from speech_msgs2.srv import LLMResponse
         
         self.node.get_logger().info(f"Sending prompt to LLM: '{prompt}'")
         request = LLMResponse.Request()
@@ -178,7 +173,6 @@ class SpeechProxy:
         Returns:
             True if the history was cleared successfully, False otherwise.
         """
-        from std_srvs.srv import Trigger
         
         self.node.get_logger().info("Clearing LLM conversation history...")
         request = Trigger.Request()
@@ -199,7 +193,6 @@ class SpeechProxy:
         Returns:
             True if the robot said the text correctly, False otherwise.
         """
-        from naoqi_utilities_msgs.srv import Say
         
         request = Say.Request()
         request.text = text_say

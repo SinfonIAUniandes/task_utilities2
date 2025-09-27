@@ -14,6 +14,11 @@ It exposes the capabilities of the naoqi_miscellaneous_node including:
 It follows the same pattern as SpeechProxy, using a parent node instead of creating its own.
 """
 
+# Import required service and message types
+from std_srvs.srv import SetBool
+from std_msgs.msg import Float32
+from naoqi_utilities_msgs.msg import LedParameters
+from std_srvs.srv import SetBool
 
 class MiscellaneousProxy:
     """
@@ -31,11 +36,6 @@ class MiscellaneousProxy:
         """
         self.node = parent_node
         self.miscellaneous_node_name = miscellaneous_node_name
-        
-        # Import required service and message types
-        from std_srvs.srv import SetBool
-        from std_msgs.msg import Float32
-        from naoqi_utilities_msgs.msg import LedParameters
         
         # Create service clients using the parent node
         self.set_autonomous_state_client = self.node.create_client(
@@ -107,7 +107,6 @@ class MiscellaneousProxy:
         Returns:
             bool: True if successful, False otherwise
         """
-        from std_srvs.srv import SetBool
         
         state_str = "enable" if enabled else "disable"
         self.node.get_logger().info(f"Setting autonomous state to {state_str}...")
@@ -157,7 +156,6 @@ class MiscellaneousProxy:
         Returns:
             bool: True if successful, False otherwise
         """
-        from std_srvs.srv import SetBool
         
         state_str = "enable" if enabled else "disable"
         self.node.get_logger().info(f"Setting basic awareness to {state_str}...")
@@ -207,7 +205,6 @@ class MiscellaneousProxy:
         Returns:
             bool: True if successful, False otherwise
         """
-        from std_srvs.srv import SetBool
         
         state_str = "enable" if enabled else "disable"
         self.node.get_logger().info(f"Setting autonomous blinking to {state_str}...")
@@ -259,7 +256,6 @@ class MiscellaneousProxy:
             bool: True if message was published successfully
         """
         try:
-            from naoqi_utilities_msgs.msg import LedParameters
             
             # Validate color values
             red = max(0, min(255, int(red)))
