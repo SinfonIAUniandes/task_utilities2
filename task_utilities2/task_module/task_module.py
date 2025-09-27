@@ -140,49 +140,62 @@ class TaskModule(Node):
         
         return self.load_context_from_file(context_file)
     
-    def initialize_for_realtime_interaction(self, robot_name=None, language='en'):
+    def set_eye_color(self, red: int = 0, green: int = 0, blue: int = 0, duration: float = 0.0) -> bool:
         """
-        Initialize the task module for real-time interaction scenarios.
-        
-        This method sets up the robot for continuous conversation by:
-        1. Loading the appropriate context
-        2. Enabling transcription mode
+        Set the color of the robot's eyes.
         
         Args:
-            robot_name (str): Name of the robot for context loading
-            language (str): Language for transcription
+            red (int): Red component (0-255)
+            green (int): Green component (0-255)
+            blue (int): Blue component (0-255)
+            duration (float): Fade duration in seconds
             
         Returns:
-            bool: True if successful, False otherwise
+            bool: True if successful
         """
-        self.get_logger().info("Initializing for real-time interaction...")
-        
-        # Load robot context
-        if not self.load_robot_context(robot_name):
-            self.get_logger().warn("Could not load robot context, continuing without it")
-        
-        # Enable transcription mode
-        success = self.speech.set_transcription_mode(enabled=True, language=language)
-        
-        if success:
-            self.get_logger().info("Real-time interaction mode initialized successfully")
-        else:
-            self.get_logger().error("Failed to initialize real-time interaction mode")
-            
-        return success
+        return self.miscellaneous.set_leds("FaceLeds", red, green, blue, duration)
     
-    def shutdown_gracefully(self):
-        """Gracefully shutdown all proxy systems."""
-        self.get_logger().info("Shutting down TaskModule...")
+    def set_ear_color(self, ear: str, red: int = 0, green: int = 0, blue: int = 0, duration: float = 0.0) -> bool:
+        """
+        Set the color of a specific ear.
         
-        # Shutdown speech proxy if it has cleanup methods
-        if hasattr(self.speech, 'shutdown'):
-            self.speech.shutdown()
+        Args:
+            ear (str): "Left" or "Right"
+            red (int): Red component (0-255)
+            green (int): Green component (0-255)
+            blue (int): Blue component (0-255)
+            duration (float): Fade duration in seconds
+            
+        Returns:
+            bool: True if successful
+        """
+        ear_name = f"{ear}Ear" if ear in ["Left", "Right"] else ear
+        return self.miscellaneous.set_leds(ear_name, red, green, blue, duration)
+    
+    def turn_off_leds(self, led_group: str = "AllLeds", duration: float = 0.0) -> bool:
+        """
+        Turn off a group of LEDs.
         
-        # Shutdown miscellaneous proxy
-        if hasattr(self.miscellaneous, 'shutdown'):
-            self.miscellaneous.shutdown()
+        Args:
+            led_group (str): LED group name (default: "AllLeds")
+            duration (float): Fade out duration in seconds
+            
+        Returns:
+            bool: True if successful
+        """
+        return self.miscellaneous.set_leds(led_group, 0, 0, 0, duration)
+    
+    # Battery Monitoring Methods
+    def get_battery_percentage(self) -> float | None:
+        """
+        Get the current battery percentage.
         
-        # Add shutdown for other proxies when implemented
+        Returns:
+            float: Battery percentage (0-100), or None if not available
+        """
+        if self.miscellaneous.battery_percentage is not None:
+            self.get_logger().info(f"Battery level: {self.miscellaneous.battery_percentage}%")
+        else:
+            self.get_logger().warn("Battery percentage not available yet")
         
-        self.get_logger().info("TaskModule shutdown complete")
+        return self.miscellaneous.battery_percentage

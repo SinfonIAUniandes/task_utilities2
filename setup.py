@@ -22,7 +22,7 @@ setup(
         'console_scripts': [
             'speech_task_simple = task_utilities2.simple_task_module_example:main',
             'realtime_event = task_utilities2.event_realtime_with_task_module:main',
-            'miscellaneous_example'
+            'miscellaneous_example = task_utilities2.miscellaneous_functionality_example:main'
         ],
     },
 )

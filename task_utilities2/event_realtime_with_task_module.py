@@ -85,7 +85,6 @@ def main():
         pass
     finally:
         # Graceful shutdown
-        task_module.shutdown_gracefully()
         task_module.destroy_node()
         rclpy.shutdown()
         spin_thread.join()

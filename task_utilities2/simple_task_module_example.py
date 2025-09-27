@@ -38,7 +38,6 @@ def main():
     # detected_objects = task_module.vision.detect_objects()
 
     # Graceful shutdown
-    task_module.shutdown_gracefully()
     task_module.destroy_node()
     rclpy.shutdown()
 
