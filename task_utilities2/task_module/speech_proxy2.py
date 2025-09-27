@@ -1,18 +1,28 @@
-import sys
-from threading import Thread
-
+#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
+
 from speech_msgs2.srv import SpeechToText, RecordAudio, SetTranscriptionMode
 from speech_msgs2.srv import SetLLMSettings, LLMResponse
 from naoqi_utilities_msgs.srv import Say
 from std_srvs.srv import Trigger
 
+
 class Speech(Node):
+    """
+    A Python class to interact with speech and conversation ROS2 nodes.
+    """
 
     def __init__(self,
                  microphone_node_name="microphone_node",
                  conversation_node_name="conversation_node"):
+        """
+        Initializes the Speech API object.
+
+        Args:
+            microphone_node_name (str): The name of the microphone node.
+            conversation_node_name (str): The name of the conversation node.
+        """
         super().__init__('speech_api_client')
         
         # Create service clients
@@ -28,6 +38,7 @@ class Speech(Node):
         self.wait_for_services()
         
         self.get_logger().info("Speech API initialized.")
+
 
     def wait_for_services(self):
         """Waits for all services to become available."""
@@ -78,7 +89,7 @@ class Speech(Node):
         
         response = self.stt_client.call(request)
         
-        return response.success
+        return response.transcription
 
     def record_audio(self, file_name, duration=0.0) -> bool:
         """
@@ -182,7 +193,7 @@ class Speech(Node):
         
         return response.success
 
-    def say(self, text_say: str, language_say="English", animated_say=False, asynchronous_say=False) -> bool:
+    def say(self, text_say: str, language_say="English", animated_say=False, wait=True) -> bool:
         """
         Makes the robot say a text.
 
@@ -193,7 +204,7 @@ class Speech(Node):
         request.text = text_say
         request.language = language_say
         request.animated = animated_say
-        request.asynchronous = asynchronous_say
+        request.asynchronous = not wait
         response = self.say_client.call(request)
-        print(response)
+        
         return response.success

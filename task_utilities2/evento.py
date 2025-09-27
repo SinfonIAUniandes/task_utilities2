@@ -4,98 +4,93 @@
 
 import rclpy
 from rclpy.node import Node
-import sys
+from speech_msgs2.msg import Transcription
+from threading import Thread
+import os
+import time
 
 # Import the Speech class using the relative path from within the package.
 # This assumes your 'speech_proxy.py' file is in a 'task_module' subdirectory.
-from .task_module.speech_proxy import Speech
+from .task_module.speech_proxy2 import Speech
 
+# --- Global speech object ---
+# Initializing rclpy here is fine, but the object will be managed within main()
+rclpy.init()
+speech = Speech()
 
-class RobotInteractionNode(Node):
+def process_transcription(transcription):
     """
-    An example node demonstrating how to use the Speech API from another file
-    as part of a larger ROS2 application.
+    This function handles the blocking tasks (LLM and TTS calls)
+    in a separate thread to avoid deadlocking the ROS 2 callback executor.
+    It now also disables transcription during TTS to prevent a feedback loop.
     """
-    def __init__(self):
-        super().__init__('robot_interaction_node')
-        
-        # 1. Instantiate the Speech API - it creates its own node now
-        self.get_logger().info("Initializing the Speech API...")
-        try:
-            self.speech = Speech()
-            self.get_logger().info("Speech API initialized successfully. 🤖")
-        except Exception as e:
-            self.get_logger().fatal(f"Could not initialize Speech API: {e}")
-            # Exit the application if essential components fail.
-            sys.exit(1)
-        
-        # 2. Create a one-shot timer to run the main logic after initialization.
-        # This is a robust pattern to ensure the node is fully ready before
-        # starting the main application logic.
+    print(f'Processing: "{transcription}"')
+    response = speech.ask(transcription)
+    print(f'LLM Response: "{response}"')
 
-    def run_interaction_logic(self):
-        """
-        Contains the main logic for the robot's conversational interaction.
-        """
-        # Cancel the timer so this function only executes once.
-        
-        self.get_logger().info("Starting robot interaction sequence...")
-
-        # --- Main Interaction Loop ---
-
-        # a. The robot introduces itself and asks a question.
-        intro_text = "Hello! I'm ready to help. What would you like to know?"
-        self.get_logger().info(f"Robot says: '{intro_text}'")
-        self.speech.say(text_say=intro_text,language_say="English",animated_say=True,asynchronous_say=False)
-
-        # b. Listen for the user's response.
-        self.get_logger().info("Listening for a question... 🎤")
-        #question = self.speech.listen(autocut=False,timeout=int(5))
-        question = "hola"
-
-        # c. Process the transcribed text.
-        if question and "ERROR" not in question:
-            self.get_logger().info(f"Heard: '{question}'")
-            
-            # d. Formulate and speak a thinking message.
-            thinking_message = "That's an interesting question. Let me think..."
-            self.get_logger().info(f"Robot says: '{thinking_message}'")
-            self.speech.say(thinking_message)
-            
-            # e. Get an answer from the Large Language Model.
-            answer = self.speech.ask(question)
-            
-            # f. Speak the final answer.
-            self.get_logger().info(f"Robot answers: '{answer}'")
-            self.speech.say(answer)
-
-        else:
-            # Handle the case where listening failed or an error occurred.
-            fail_message = "I'm sorry, I didn't quite catch that. Could you please try again?"
-            self.get_logger().warn(fail_message)
-            self.speech.say(fail_message)
-        
-        self.get_logger().info("Interaction sequence finished. Shutting down. 👋")
-        
-        # For this simple example, we shut down after one interaction.
-        rclpy.shutdown()
-
-
-def main(args=None):
-    rclpy.init(args=args)
-    
     try:
-        # Create and run the interaction node
-        interaction_node = RobotInteractionNode()
-        interaction_node.run_interaction_logic()
-        
+        # --- FIX START ---
+        # 1. Disable transcription to prevent the robot from hearing itself.
+        print("Disabling transcription for TTS.")
+        speech.set_transcription_mode(enabled=False)
+
+        # 2. Make the robot speak. The wait=True argument is important here.
+        speech.say(text_say=response, language_say="English", animated_say=True, wait=True)
+        # --- FIX END ---
+
+    finally:
+        # --- FIX START ---
+        # 3. Re-enable transcription so the robot can listen for the user again.
+        # This is in a 'finally' block to guarantee it runs even if speech.say() fails.
+        print("Re-enabling transcription.")
+        speech.set_transcription_mode(enabled=True, language='en')
+        # --- FIX END ---
+
+def on_transcription(msg):
+    """
+    This callback is now non-blocking. It simply receives the message
+    and starts a new thread to handle the actual work.
+    """
+    print(f'I heard: "{msg.text}"')
+    # Create and start a new thread to process the transcription
+    # This prevents the callback itself from blocking.
+    processing_thread = Thread(target=process_transcription, args=(msg.text,))
+    processing_thread.start()
+
+def main():
+    # Run spin in a separate thread. This thread is dedicated to processing
+    # incoming messages and executing their callbacks (like on_transcription).
+    spin_thread = Thread(target=rclpy.spin, args=(speech,))
+    spin_thread.start()
+
+    # Load context for the LLM
+    current_dir = os.path.dirname(__file__)
+    nova_context_file = os.path.join(current_dir, 'data/nova_context.txt')
+    try:
+        with open(nova_context_file, 'r') as file:
+            context = file.read()
+            speech.set_llm_settings(context=context)
+    except FileNotFoundError:
+        speech.get_logger().error(f"Context file not found at {nova_context_file}")
+
+
+    # Set up the subscription
+    speech.set_transcription_mode(enabled=True, language='en')
+    speech.create_subscription(Transcription, '/microphone_node/transcription', on_transcription, 10)
+
+    speech.get_logger().info("Robot interaction node is running and waiting for transcription...")
+
+    # The main thread can just wait. The spin_thread and processing_threads do the work.
+    try:
+        while rclpy.ok():
+            time.sleep(1)
     except KeyboardInterrupt:
-        print("Keyboard interrupt, shutting down.")
+        pass
     finally:
         # Cleanup
-        if rclpy.ok():
-            rclpy.shutdown()
-    
+        speech.destroy_node()
+        rclpy.shutdown()
+        spin_thread.join()
 
 
 if __name__ == '__main__':

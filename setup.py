@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'evento_node = task_utilities2.evento:main',
+            'speech_example = task_utilities2.simple_speech_example:main'
         ],
     },
 )
