@@ -23,7 +23,8 @@ setup(
             'speech_task_simple = task_utilities2.simple_task_module_example:main',
             'realtime_event = task_utilities2.event_realtime_with_task_module:main',
             'miscellaneous_example = task_utilities2.miscellaneous_functionality_example:main',
-            'manipulation_example = task_utilities2.manipulation_example:main'
+            'manipulation_example = task_utilities2.manipulation_example:main',
+            'minimal_robot_agent = task_utilities2.minimal_robot_agent_example:main',
         ],
     },
 )
