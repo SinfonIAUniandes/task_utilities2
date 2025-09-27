@@ -6,7 +6,7 @@ from threading import Thread
 import os
 
 # Import proxy classes
-from .speech_proxy import Speech
+from .speech_proxy import SpeechProxy
 from .navigation_proxy import NavigationProxy
 
 
