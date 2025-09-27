@@ -36,6 +36,7 @@ def process_transcription(transcription):
 
         # 2. Make the robot speak. The wait=True argument is important here.
         speech.say(text_say=response, language_say="English", animated_say=True, wait=True)
+        time.sleep(2)
         # --- FIX END ---
 
     finally:
