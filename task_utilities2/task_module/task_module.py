@@ -8,6 +8,7 @@ import os
 # Import proxy classes
 from .speech_proxy import SpeechProxy
 from .navigation_proxy import NavigationProxy
+from .miscellaneous_proxy import MiscellaneousProxy
 
 
 class TaskModule(Node):
@@ -61,6 +62,9 @@ class TaskModule(Node):
         # Initialize Navigation proxy (when implemented)
         self._initialize_navigation_proxy()
         
+        # Initialize Miscellaneous proxy
+        self._initialize_miscellaneous_proxy()
+        
         # Add more proxies here in the future
         # self._initialize_vision_proxy()
         # self._initialize_manipulation_proxy()
@@ -86,6 +90,15 @@ class TaskModule(Node):
         self.navigation = NavigationProxy(parent_node=self)
         
         self.get_logger().info("Navigation proxy initialized")
+    
+    def _initialize_miscellaneous_proxy(self):
+        """Initialize the miscellaneous proxy system."""
+        self.get_logger().info("Initializing Miscellaneous proxy...")
+        
+        # Initialize MiscellaneousProxy
+        self.miscellaneous = MiscellaneousProxy(parent_node=self)
+        
+        self.get_logger().info("Miscellaneous proxy initialized")
     
     def load_context_from_file(self, context_file_path):
         """
@@ -165,6 +178,10 @@ class TaskModule(Node):
         # Shutdown speech proxy if it has cleanup methods
         if hasattr(self.speech, 'shutdown'):
             self.speech.shutdown()
+        
+        # Shutdown miscellaneous proxy
+        if hasattr(self.miscellaneous, 'shutdown'):
+            self.miscellaneous.shutdown()
         
         # Add shutdown for other proxies when implemented
         
