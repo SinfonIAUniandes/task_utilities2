@@ -18,7 +18,7 @@ It follows the same pattern as SpeechProxy, using a parent node instead of creat
 from std_srvs.srv import SetBool
 from std_msgs.msg import Float32
 from naoqi_utilities_msgs.msg import LedParameters
-from std_srvs.srv import SetBool
+from naoqi_utilities_msgs.srv import SetBreathing, GoToPosture, PlayAnimation
 
 class MiscellaneousProxy:
     """
@@ -26,16 +26,18 @@ class MiscellaneousProxy:
     This allows TaskModule to be the single ROS2 node managing all services.
     """
     
-    def __init__(self, parent_node, miscellaneous_node_name="naoqi_miscellaneous_node"):
+    def __init__(self, parent_node, miscellaneous_node_name="naoqi_miscellaneous_node", manipulation_node_name="naoqi_manipulation_node"):
         """
         Initialize Miscellaneous proxy with a parent node.
         
         Args:
             parent_node (Node): The parent ROS2 node to use for services
             miscellaneous_node_name (str): Name of the miscellaneous node
+            manipulation_node_name (str): Name of the manipulation node
         """
         self.node = parent_node
         self.miscellaneous_node_name = miscellaneous_node_name
+        self.manipulation_node_name = manipulation_node_name
         
         # Create service clients using the parent node
         self.set_autonomous_state_client = self.node.create_client(
@@ -56,6 +58,20 @@ class MiscellaneousProxy:
             LedParameters, 
             '/set_leds', 
             10
+        )
+        
+        # Create service clients for manipulation functionality
+        self.toggle_breathing_client = self.node.create_client(
+            SetBreathing,
+            f"/{manipulation_node_name}/toggle_breathing"
+        )
+        self.go_to_posture_client = self.node.create_client(
+            GoToPosture,
+            f"/{manipulation_node_name}/go_to_posture"
+        )
+        self.play_animation_client = self.node.create_client(
+            PlayAnimation,
+            f"/{manipulation_node_name}/play_animation"
         )
         
         # Battery monitoring
@@ -79,7 +95,10 @@ class MiscellaneousProxy:
         services = [
             (self.set_autonomous_state_client, 'set_autonomous_state'),
             (self.toggle_awareness_client, 'toggle_awareness'),
-            (self.toggle_blinking_client, 'toggle_blinking')
+            (self.toggle_blinking_client, 'toggle_blinking'),
+            (self.toggle_breathing_client, 'toggle_breathing'),
+            (self.go_to_posture_client, 'go_to_posture'),
+            (self.play_animation_client, 'play_animation')
         ]
         
         for client, service_name in services:
@@ -201,3 +220,61 @@ class MiscellaneousProxy:
         except Exception as e:
             self.node.get_logger().error(f"Failed to set LEDs: {e}")
             return False
+    
+    # Manipulation Methods (calling naoqi_manipulation_node services)
+    def toggle_breathing(self, joint_group: str, enabled: bool) -> bool:
+        """
+        Enable or disable breathing movements for a joint group.
+        
+        Args:
+            joint_group (str): Joint group name (e.g., "Arms", "Body", "All")
+            enabled (bool): True to enable breathing, False to disable
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        state_str = "enable" if enabled else "disable"
+        self.node.get_logger().info(f"Setting breathing for {joint_group} to {state_str}...")
+        
+        request = SetBreathing.Request()
+        request.joint_group = joint_group
+        request.enabled = enabled
+        
+        response = self.toggle_breathing_client.call(request)
+        return response.success
+    
+    def go_to_posture(self, posture_name: str) -> bool:
+        """
+        Make the robot go to a predefined posture.
+        
+        Args:
+            posture_name (str): Name of the posture (e.g., "Stand", "Sit", "Rest", "SitRelax", "LyingBack", "LyingFront")
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        self.node.get_logger().info(f"Going to posture: {posture_name}...")
+        
+        request = GoToPosture.Request()
+        request.posture_name = posture_name
+        
+        response = self.go_to_posture_client.call(request)
+        return response.success
+    
+    def play_animation(self, animation_name: str) -> bool:
+        """
+        Play a predefined animation (behavior) from the 'animations' family.
+        
+        Args:
+            animation_name (str): Name of the animation to play
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        self.node.get_logger().info(f"Playing animation: {animation_name}...")
+        
+        request = PlayAnimation.Request()
+        request.animation_name = animation_name
+        
+        response = self.play_animation_client.call(request)
+        return response.success

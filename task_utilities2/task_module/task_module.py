@@ -29,6 +29,7 @@ class TaskModule(Node):
                  node_name="task_module",
                  microphone_node_name="microphone_node",
                  conversation_node_name="conversation_node",
+                 manipulation_node_name="naoqi_manipulation_node",
                  robot_name=None):
         """
         Initialize the TaskModule with all proxy systems.
@@ -37,6 +38,7 @@ class TaskModule(Node):
             node_name (str): Name for this ROS2 node
             microphone_node_name (str): Name of the microphone node for speech services
             conversation_node_name (str): Name of the conversation node for LLM services
+            manipulation_node_name (str): Name of the manipulation node for robot control
             robot_name (str): Name of the robot (optional)
         """
         super().__init__(node_name)
@@ -44,6 +46,7 @@ class TaskModule(Node):
         self.robot_name = robot_name or "robot"
         self.microphone_node_name = microphone_node_name
         self.conversation_node_name = conversation_node_name
+        self.manipulation_node_name = manipulation_node_name
         
         self.get_logger().info(f"Initializing TaskModule for robot: {self.robot_name}")
         
@@ -95,8 +98,11 @@ class TaskModule(Node):
         """Initialize the miscellaneous proxy system."""
         self.get_logger().info("Initializing Miscellaneous proxy...")
         
-        # Initialize MiscellaneousProxy
-        self.miscellaneous = MiscellaneousProxy(parent_node=self)
+        # Initialize MiscellaneousProxy with manipulation node name
+        self.miscellaneous = MiscellaneousProxy(
+            parent_node=self,
+            manipulation_node_name=self.manipulation_node_name
+        )
         
         self.get_logger().info("Miscellaneous proxy initialized")
     
