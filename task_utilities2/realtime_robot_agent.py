@@ -64,7 +64,7 @@ class RealtimeRobotAgent:
         # Create the robot agent
         self.robot_agent = LLMAgent(
             initial_settings={
-                "model_name": "gpt-4o-mini",
+                "model_name": "gpt-4o-azure",
                 "temperature": 0.3,
                 "context": """You are a helpful and friendly robot assistant. You can:
 - Speak out loud to communicate
@@ -140,13 +140,13 @@ Always be helpful and responsive to the user's requests."""
                 g = max(0, min(255, g))
                 b = max(0, min(255, b))
                 
-                self.task_module.set_eye_color(red=r, green=g, blue=b, duration=2.0)
+                self.task_module.set_eye_color(red=r, green=g, blue=b, duration=0.0)
                 return f"Changed eye color to {color_name} (RGB: {r}, {g}, {b})"
                 
             except Exception as e:
                 return f"Error changing eye color: {e}"
         
-        def take_picture() -> str:
+        def take_picture(filler) -> str:
             """Make the robot take a picture by playing the take picture animation."""
             try:
                 success = self.task_module.miscellaneous.play_animation("Stand/Waiting/TakePicture_1")

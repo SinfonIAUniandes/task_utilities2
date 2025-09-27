@@ -93,7 +93,7 @@ def main():
         # Create the robot agent with simple settings
         robot_agent = LLMAgent(
             initial_settings={
-                "model_name": "gpt-4o-mini",
+                "model_name": "gpt-4o-azure",
                 "temperature": 0.1,
                 "context": "You are a helpful robot assistant. You can speak, take pictures, and tell time. Keep responses short and friendly."
             },

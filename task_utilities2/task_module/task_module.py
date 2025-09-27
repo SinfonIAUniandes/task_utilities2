@@ -146,6 +146,37 @@ class TaskModule(Node):
         
         return self.load_context_from_file(context_file)
     
+    def initialize_for_realtime_interaction(self, robot_name=None, language='en'):
+        """
+        Initialize the task module for real-time interaction scenarios.
+        
+        This method sets up the robot for continuous conversation by:
+        1. Loading the appropriate context
+        2. Enabling transcription mode
+        
+        Args:
+            robot_name (str): Name of the robot for context loading
+            language (str): Language for transcription
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        self.get_logger().info("Initializing for real-time interaction...")
+        
+        # Load robot context
+        if not self.load_robot_context(robot_name):
+            self.get_logger().warn("Could not load robot context, continuing without it")
+        
+        # Enable transcription mode
+        success = self.speech.set_transcription_mode(enabled=True, language=language)
+        
+        if success:
+            self.get_logger().info("Real-time interaction mode initialized successfully")
+        else:
+            self.get_logger().error("Failed to initialize real-time interaction mode")
+            
+        return success
+    
     def set_eye_color(self, red: int = 0, green: int = 0, blue: int = 0, duration: float = 0.0) -> bool:
         """
         Set the color of the robot's eyes.
