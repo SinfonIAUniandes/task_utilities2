@@ -20,7 +20,7 @@ class TaskModule(Node):
     entry point for complex robot tasks that may involve multiple subsystems.
     
     Usage:
-        task_module = TaskModule()
+        task_module = TaskModule(speech=True, miscellaneous=True)
         task_module.speech.say("Hello World")
         response = task_module.speech.ask("What is your name?")
     """
@@ -30,9 +30,12 @@ class TaskModule(Node):
                  microphone_node_name="microphone_node",
                  conversation_node_name="conversation_node",
                  manipulation_node_name="naoqi_manipulation_node",
-                 robot_name=None):
+                 robot_name=None,
+                 enable_speech=False,
+                 enable_navigation=False,
+                 enable_miscellaneous=False):
         """
-        Initialize the TaskModule with all proxy systems.
+        Initialize the TaskModule with selected proxy systems.
         
         Args:
             node_name (str): Name for this ROS2 node
@@ -40,6 +43,9 @@ class TaskModule(Node):
             conversation_node_name (str): Name of the conversation node for LLM services
             manipulation_node_name (str): Name of the manipulation node for robot control
             robot_name (str): Name of the robot (optional)
+            enable_speech (bool): Whether to initialize the speech proxy (default: False)
+            enable_navigation (bool): Whether to initialize the navigation proxy (default: False)
+            enable_miscellaneous (bool): Whether to initialize the miscellaneous proxy (default: False)
         """
         super().__init__(node_name)
         
@@ -48,29 +54,48 @@ class TaskModule(Node):
         self.conversation_node_name = conversation_node_name
         self.manipulation_node_name = manipulation_node_name
         
-        self.get_logger().info(f"Initializing TaskModule for robot: {self.robot_name}")
+        # Store proxy enable flags
+        self.enable_speech = enable_speech
+        self.enable_navigation = enable_navigation
+        self.enable_miscellaneous = enable_miscellaneous
         
-        # Initialize proxy systems
+        # Initialize proxy attributes as None
+        self.speech = None
+        self.navigation = None
+        self.miscellaneous = None
+        
+        self.get_logger().info(f"Initializing TaskModule for robot: {self.robot_name}")
+        self.get_logger().info(f"Proxy initialization flags - Speech: {enable_speech}, Navigation: {enable_navigation}, Miscellaneous: {enable_miscellaneous}")
+        
+        # Initialize proxy systems conditionally
         self._initialize_proxies()
         
         self.get_logger().info("TaskModule initialization complete")
     
     def _initialize_proxies(self):
-        """Initialize all proxy systems."""
-        self.get_logger().info("Initializing proxy systems...")
+        """Initialize enabled proxy systems."""
+        self.get_logger().info("Initializing enabled proxy systems...")
         
-        # Initialize Speech proxy - but modify it to not create its own node
-        self._initialize_speech_proxy()
+        if self.enable_speech:
+            self._initialize_speech_proxy()
+        else:
+            self.get_logger().info("Speech proxy disabled - skipping initialization")
         
-        # Initialize Navigation proxy (when implemented)
-        self._initialize_navigation_proxy()
+        if self.enable_navigation:
+            self._initialize_navigation_proxy()
+        else:
+            self.get_logger().info("Navigation proxy disabled - skipping initialization")
         
-        # Initialize Miscellaneous proxy
-        self._initialize_miscellaneous_proxy()
+        if self.enable_miscellaneous:
+            self._initialize_miscellaneous_proxy()
+        else:
+            self.get_logger().info("Miscellaneous proxy disabled - skipping initialization")
         
         # Add more proxies here in the future
-        # self._initialize_vision_proxy()
-        # self._initialize_manipulation_proxy()
+        # if self.enable_vision:
+        #     self._initialize_vision_proxy()
+        # if self.enable_manipulation:
+        #     self._initialize_manipulation_proxy()
         
     def _initialize_speech_proxy(self):
         """Initialize the speech proxy system."""
@@ -106,6 +131,21 @@ class TaskModule(Node):
         
         self.get_logger().info("Miscellaneous proxy initialized")
 
+    def _check_proxy_availability(self, proxy_name: str) -> bool:
+        """
+        Check if a proxy is available and initialized.
+        
+        Args:
+            proxy_name (str): Name of the proxy to check
+            
+        Returns:
+            bool: True if proxy is available, False otherwise
+        """
+        proxy = getattr(self, proxy_name, None)
+        if proxy is None:
+            self.get_logger().warn(f"{proxy_name.capitalize()} proxy not initialized. Enable it during TaskModule creation.")
+            return False
+        return True
     
     def load_robot_context(self, robot_name=None):
         """
@@ -116,7 +156,7 @@ class TaskModule(Node):
                             If None, uses self.robot_name
             
         Returns:
-            bool: True if successful, False otherwise
+            str: Robot context as string, or False if failed
         """
         robot_name = robot_name or self.robot_name.lower()
         
@@ -152,6 +192,8 @@ class TaskModule(Node):
         Returns:
             bool: True if successful
         """
+        if not self._check_proxy_availability('miscellaneous'):
+            return False
         return self.miscellaneous.set_leds("FaceLeds", red, green, blue, duration)
     
     def set_ear_color(self, ear: str, red: int = 0, green: int = 0, blue: int = 0, duration: float = 0.0) -> bool:
@@ -168,6 +210,8 @@ class TaskModule(Node):
         Returns:
             bool: True if successful
         """
+        if not self._check_proxy_availability('miscellaneous'):
+            return False
         ear_name = f"{ear}Ear" if ear in ["Left", "Right"] else ear
         return self.miscellaneous.set_leds(ear_name, red, green, blue, duration)
     
@@ -182,6 +226,8 @@ class TaskModule(Node):
         Returns:
             bool: True if successful
         """
+        if not self._check_proxy_availability('miscellaneous'):
+            return False
         return self.miscellaneous.set_leds(led_group, 0, 0, 0, duration)
     
     # Battery Monitoring Methods
@@ -192,6 +238,9 @@ class TaskModule(Node):
         Returns:
             float: Battery percentage (0-100), or None if not available
         """
+        if not self._check_proxy_availability('miscellaneous'):
+            return None
+            
         if self.miscellaneous.battery_percentage is not None:
             self.get_logger().info(f"Battery level: {self.miscellaneous.battery_percentage}%")
         else:
