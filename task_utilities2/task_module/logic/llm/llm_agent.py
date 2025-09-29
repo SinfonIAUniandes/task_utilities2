@@ -1,7 +1,7 @@
-# filepath: /home/cuevas/github_cosas/task_utilities2/task_utilities2/task_module/logic/llm/llm_agent.py
 from typing import Optional, Dict, Any, List, Callable
 import os
 from datetime import datetime
+import json
 
 # Importar clases de lógica interna
 from .llm_settings import LLMSettings
@@ -11,19 +11,18 @@ from dotenv import load_dotenv
 # Cargar variables de entorno desde un archivo .env si existe
 load_dotenv()
 
-# Importar adaptadores de LangChain para agentes
+# Importar adaptadores de LangChain para agentes (modernized imports)
 try:
     from langchain_community.chat_models import AzureChatOpenAI, ChatOpenAI
     from langchain_ollama import ChatOllama
-    from langchain.agents import AgentExecutor, create_react_agent
-    from langchain import hub
     from langchain.tools import Tool
     from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, BaseMessage
+    from langgraph.prebuilt import create_react_agent  # Modern LangGraph import
     from langchain.prompts import PromptTemplate
 except ImportError:
-    print("Advertencia: Faltan dependencias de LangChain para agentes. Instálalas con 'pip install langchain langchain-openai langchain-community langchain-ollama langchain-hub python-dotenv'")
+    print("Advertencia: Faltan dependencias de LangChain/LangGraph para agentes. Instálalas con 'pip install langchain langchain-openai langchain-community langchain-ollama langgraph python-dotenv'")
     AzureChatOpenAI, ChatOpenAI, ChatOllama = None, None, None
-    AgentExecutor, create_react_agent, hub, Tool = None, None, None, None
+    create_react_agent, Tool = None, None
     AIMessage, HumanMessage, SystemMessage, BaseMessage = None, None, None, None
     PromptTemplate = None
 
@@ -90,12 +89,12 @@ DEFAULT_TOOLS: List[Tool] = [
 
 class LLMAgent:
     """
-    Clase orquestadora para interactuar con un agente ReAct LLM.
+    Clase orquestadora para interactuar con un agente ReAct LLM usando LangGraph.
     Gestiona la configuración, la memoria, las herramientas y la creación de agentes LLM.
     """
     def __init__(self, initial_settings: Optional[Dict[str, Any]] = None, tools: Optional[List[Tool]] = None):
-        if not all([AzureChatOpenAI, ChatOpenAI, ChatOllama, AgentExecutor, create_react_agent]):
-            raise ImportError("Las dependencias de LangChain para agentes no están instaladas. Ejecuta: pip install langchain langchain-openai langchain-community langchain-ollama langchain-hub python-dotenv")
+        if not all([AzureChatOpenAI, ChatOpenAI, ChatOllama, create_react_agent]):
+            raise ImportError("Las dependencias de LangChain/LangGraph para agentes no están instaladas. Ejecuta: pip install langchain langchain-openai langchain-community langchain-ollama langgraph python-dotenv")
 
         self.settings = LLMSettings()
         if initial_settings:
@@ -164,9 +163,22 @@ class LLMAgent:
             print(f"Error al crear el cliente LLM para agente '{model_name}': {e}")
             self.llm_client = None
 
+    def _create_system_prompt(self, state):
+        """
+        Crea el prompt del sistema para el agente, similar al patrón de evaluation-agent.
+        """
+        messages = state.get("messages", [])
+        
+        system_prompt = [{
+            "role": "system", 
+            "content": self.settings.context
+        }] + messages
+        
+        return system_prompt
+
     def _recreate_agent(self):
         """
-        Crea (o recrea) el agente ReAct basado en la configuración actual.
+        Crea (o recrea) el agente ReAct basado en la configuración actual usando LangGraph.
         """
         self._recreate_client()
         
@@ -176,11 +188,13 @@ class LLMAgent:
             return
 
         try:
-            prompt = SystemMessage(content=self.settings.context)
-
-            # Crear el agente ReAct
-            self.agent = create_react_agent(self.llm_client, self.tools, prompt)
-            print("Agente ReAct creado exitosamente.")
+            # Crear el agente ReAct usando LangGraph (modern approach)
+            self.agent = create_react_agent(
+                self.llm_client, 
+                tools=self.tools,
+                prompt=self._create_system_prompt
+            )
+            print("Agente ReAct creado exitosamente con LangGraph.")
         except Exception as e:
             print(f"Error al crear el agente ReAct: {e}")
             self.agent = None
@@ -224,9 +238,10 @@ class LLMAgent:
         self._recreate_agent()
         print("Configuración del agente actualizada y agente recreado.")
 
-    def invoke_agent(self, input_text: str) -> Dict[str, Any]:
+    def invoke_agent(self, input_text: str, additional_context: str = "") -> Dict[str, Any]:
         """
         Invoca al agente ReAct con un input y devuelve la respuesta completa.
+        Modernized to use LangGraph's state pattern like evaluation-agent.
         """
         if not self.agent:
             error_msg = "Error: El agente no está inicializado. Verifica la configuración y las credenciales."
@@ -238,15 +253,40 @@ class LLMAgent:
         
         try:
             print(f"Invocando agente con: {input_text}")
-            response = self.agent.invoke({"input": input_text})
             
-            # Extraer la respuesta del agente
-            output = response.get("output", "No se pudo obtener respuesta del agente.")
+            # Prepare the message with additional context if provided
+            full_message = input_text
+            if additional_context:
+                full_message += f"\n\nContexto adicional: {additional_context}"
+            
+            # Create state object similar to evaluation-agent pattern
+            state = {
+                "messages": [{"role": "user", "content": full_message}]
+            }
+            
+            # Invoke the agent with the state
+            result = self.agent.invoke(state)
+            
+            # Extract the final message content
+            if "messages" in result and result["messages"]:
+                final_message = result["messages"][-1]
+                if hasattr(final_message, 'content'):
+                    output = final_message.content
+                else:
+                    output = str(final_message)
+            else:
+                output = "No se pudo obtener respuesta del agente."
             
             # Agregar la respuesta del agente a la memoria
             self.memory.add_message("assistant", output)
             
-            return response
+            # Return structured response
+            return {
+                "output": output,
+                "full_result": result,
+                "success": True
+            }
+            
         except Exception as e:
             error_msg = f"Error durante la invocación del agente: {e}"
             print(error_msg)
@@ -254,16 +294,64 @@ class LLMAgent:
             history = self.memory.get_history()
             if history and history[-1]["role"] == "user":
                 history.pop()
-            return {"error": error_msg}
+            return {"error": error_msg, "success": False}
 
-    def get_response(self, prompt: str) -> str:
+    def get_response(self, prompt: str, additional_context: str = "") -> str:
         """
         Método de conveniencia que devuelve solo la respuesta de texto del agente.
         """
-        result = self.invoke_agent(prompt)
+        result = self.invoke_agent(prompt, additional_context)
         if "error" in result:
             return result["error"]
         return result.get("output", "No se pudo obtener respuesta del agente.")
+
+    def get_structured_response(self, prompt: str, additional_context: str = "", 
+                              response_format: str = "json") -> Dict[str, Any]:
+        """
+        Obtiene una respuesta estructurada del agente, similar al patrón de evaluation-agent.
+        """
+        result = self.invoke_agent(prompt, additional_context)
+        
+        if "error" in result:
+            return {"error": result["error"], "success": False}
+        
+        output = result.get("output", "")
+        
+        # Try to parse structured response if requested
+        if response_format.lower() == "json":
+            try:
+                # Look for JSON in the response
+                if "```json" in output:
+                    json_start = output.find("```json") + 7
+                    json_end = output.find("```", json_start)
+                    json_str = output[json_start:json_end].strip()
+                else:
+                    # Look for JSON-like structure
+                    json_start = output.find("{")
+                    json_end = output.rfind("}") + 1
+                    if json_start >= 0 and json_end > json_start:
+                        json_str = output[json_start:json_end]
+                    else:
+                        json_str = output
+                
+                parsed_response = json.loads(json_str)
+                return {
+                    "structured_data": parsed_response,
+                    "raw_output": output,
+                    "success": True
+                }
+                
+            except (json.JSONDecodeError, ValueError) as e:
+                return {
+                    "error": f"No se pudo parsear la respuesta como JSON: {e}",
+                    "raw_output": output,
+                    "success": False
+                }
+        
+        return {
+            "raw_output": output,
+            "success": True
+        }
 
     def clear_history(self):
         """
