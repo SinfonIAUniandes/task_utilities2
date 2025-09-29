@@ -111,9 +111,6 @@ class LLMAgent:
         # Configurar herramientas: usar las proporcionadas o las predeterminadas
         self.tools = tools if tools is not None else DEFAULT_TOOLS.copy()
         
-        # Configuración para el prompt del agente ReAct
-        self.verbose = False
-        
         self._recreate_agent()
 
     def _recreate_client(self):
@@ -179,9 +176,10 @@ class LLMAgent:
             return
 
         try:
-            # Crear el agente ReAct
-            self.agent = create_react_agent(self.llm_client, self.tools, self.settings.context, verbose=self.verbose)
+            prompt = SystemMessage(content=self.settings.context)
 
+            # Crear el agente ReAct
+            self.agent = create_react_agent(self.llm_client, self.tools, prompt)
             print("Agente ReAct creado exitosamente.")
         except Exception as e:
             print(f"Error al crear el agente ReAct: {e}")
