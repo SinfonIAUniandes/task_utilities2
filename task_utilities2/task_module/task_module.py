@@ -105,27 +105,7 @@ class TaskModule(Node):
         )
         
         self.get_logger().info("Miscellaneous proxy initialized")
-    
-    def load_context_from_file(self, context_file_path):
-        """
-        Load context for LLM from a file.
-        
-        Args:
-            context_file_path (str): Path to the context file
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            with open(context_file_path, 'r') as file:
-                context = file.read()
-                return self.speech.set_llm_settings(context=context)
-        except FileNotFoundError:
-            self.get_logger().error(f"Context file not found at {context_file_path}")
-            return False
-        except Exception as e:
-            self.get_logger().error(f"Error loading context file: {e}")
-            return False
+
     
     def load_robot_context(self, robot_name=None):
         """
@@ -141,41 +121,23 @@ class TaskModule(Node):
         robot_name = robot_name or self.robot_name.lower()
         
         # Get the directory where this module is located
-        current_dir = os.path.dirname(os.path.dirname(__file__))  # Go up one level from task_module
-        context_file = os.path.join(current_dir, f'data/{robot_name}_context.txt')
+        current_dir = os.path.dirname(os.path.dirname(__file__)).replace("build","src")  # Go up one level from task_module
+        context_file_path = os.path.join(current_dir, f'data/{robot_name}_context.txt')
+
+        general_SinfonIA_context_path = os.path.join(current_dir, 'data/info_herramientas_SinfonIA.txt')
         
-        return self.load_context_from_file(context_file)
-    
-    def initialize_for_realtime_interaction(self, robot_name=None, language='en'):
-        """
-        Initialize the task module for real-time interaction scenarios.
-        
-        This method sets up the robot for continuous conversation by:
-        1. Loading the appropriate context
-        2. Enabling transcription mode
-        
-        Args:
-            robot_name (str): Name of the robot for context loading
-            language (str): Language for transcription
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        self.get_logger().info("Initializing for real-time interaction...")
-        
-        # Load robot context
-        if not self.load_robot_context(robot_name):
-            self.get_logger().warn("Could not load robot context, continuing without it")
-        
-        # Enable transcription mode
-        success = self.speech.set_transcription_mode(enabled=True, language=language)
-        
-        if success:
-            self.get_logger().info("Real-time interaction mode initialized successfully")
-        else:
-            self.get_logger().error("Failed to initialize real-time interaction mode")
-            
-        return success
+        try:
+            with open(general_SinfonIA_context_path,"r",encoding="utf-8") as general_context_file:
+                general_context = general_context_file.read()
+                with open(context_file_path, 'r') as file:
+                    full_robot_context = file.read().replace("{info_herramientas}",general_context)
+                    return full_robot_context
+        except FileNotFoundError:
+            self.get_logger().error(f"Context file not found at {context_file_path}")
+            return False
+        except Exception as e:
+            self.get_logger().error(f"Error loading context file: {e}")
+            return False
     
     def set_eye_color(self, red: int = 0, green: int = 0, blue: int = 0, duration: float = 0.0) -> bool:
         """
