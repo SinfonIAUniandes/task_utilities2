@@ -26,17 +26,3 @@ class LLMSettings:
                     setattr(self, key, value)
                 except (ValueError, TypeError) as e:
                     print(f"Error al convertir el ajuste '{key}' con valor '{value}': {e}")
-
-# Ejemplo de cómo se podría usar
-if __name__ == '__main__':
-    settings = LLMSettings()
-    print(f"Ajustes iniciales: {settings}")
-
-    new_settings = {
-        "model_name": "gpt-4o-azure",
-        "temperature": "0.1",
-        "max_tokens": "1024",
-        "context": "Eres un asistente robótico servicial."
-    }
-    settings.update_from_dict(new_settings)
-    print(f"Ajustes actualizados: {settings}")
