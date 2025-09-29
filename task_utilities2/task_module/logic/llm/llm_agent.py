@@ -182,7 +182,7 @@ class LLMAgent:
 
         try:
             # Obtener el prompt ReAct desde LangChain Hub
-            prompt = hub.pull("hwchase17/react")
+            prompt = hub.pull("hwchase17/react") + "\n" + self.settings.context
             
             # Crear el agente ReAct
             self.agent = create_react_agent(self.llm_client, self.tools, prompt)
@@ -302,52 +302,3 @@ class LLMAgent:
         Devuelve el historial completo de la conversación.
         """
         return self.memory.get_history()
-
-# Ejemplo de cómo se podría usar
-if __name__ == '__main__':
-    # Asegúrate de tener un archivo .env con las credenciales necesarias
-    print("--- Probando LLMAgent con ReAct ---")
-    
-    try:
-        # Crear agente con configuración inicial
-        agent_handler = LLMAgent({
-            "model_name": "gpt-4o-mini",
-            "temperature": 0.0,
-            "context": "Eres un asistente útil que puede ayudar con diversas tareas."
-        })
-        
-        # Probar funcionalidad básica
-        response1 = agent_handler.get_response("¿Qué hora es?")
-        print(f"Respuesta del agente: {response1}\n")
-
-        response2 = agent_handler.get_response("¿Qué fecha es hoy?")
-        print(f"Respuesta del agente: {response2}\n")
-
-        # Agregar una herramienta personalizada
-        def calculate_square(number: str) -> str:
-            """Calcula el cuadrado de un número."""
-            try:
-                num = float(number)
-                return str(num ** 2)
-            except ValueError:
-                return "Error: Por favor proporciona un número válido."
-
-        agent_handler.add_custom_tool(
-            name="calculate_square",
-            func=calculate_square,
-            description="Calcula el cuadrado de un número. Entrada: un número."
-        )
-
-        response3 = agent_handler.get_response("¿Cuál es el cuadrado de 7?")
-        print(f"Respuesta del agente: {response3}\n")
-
-        # Mostrar herramientas disponibles
-        print("Herramientas disponibles:", agent_handler.list_tools())
-
-        # Mostrar historial
-        print("\nHistorial de conversación:")
-        for msg in agent_handler.get_history():
-            print(f"  {msg['role']}: {msg['content']}")
-
-    except Exception as e:
-        print(f"No se pudo ejecutar el ejemplo del agente: {e}")
