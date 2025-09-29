@@ -7,7 +7,7 @@ import rclpy
 from threading import Thread
 
 # Import the TaskModule class
-from .task_module.task_module import TaskModule
+from task_utilities2.task_module.task_module import TaskModule
 
 def main():
     rclpy.init()

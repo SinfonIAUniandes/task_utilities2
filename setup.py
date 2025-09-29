@@ -17,7 +17,6 @@ setup(
     maintainer_email='sinfonia@uniandes.edu.co',
     description='TODO: Package description',
     license='TODO: License declaration',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'speech_task_simple = task_utilities2.simple_task_module_example:main',

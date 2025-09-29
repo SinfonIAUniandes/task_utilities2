@@ -10,7 +10,7 @@ import os
 import time
 
 # Import the TaskModule class
-from .task_module.task_module import TaskModule
+from task_utilities2.task_module.task_module import TaskModule
 
 # --- Global task_module object ---
 rclpy.init()
@@ -66,11 +66,13 @@ def main():
 
     # Initialize for real-time interaction (loads context and enables transcription)
     # This replaces the manual context loading and transcription setup
-    success = task_module.initialize_for_realtime_interaction(robot_name='nova', language='en')
+    context = task_module.load_robot_context('nova')
+
+    if not task_module.speech.set_llm_settings(context=context):
+        task_module.get_logger().warn("Could not load robot context, continuing without it")
     
-    if not success:
-        task_module.get_logger().error("Failed to initialize real-time interaction")
-        return
+    # Enable transcription mode
+    success = task_module.speech.set_transcription_mode(enabled=True, language='en')
 
     # Set up the subscription using the TaskModule's speech proxy
     task_module.speech.create_subscription(Transcription, '/microphone_node/transcription', on_transcription, 10)
