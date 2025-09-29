@@ -107,13 +107,12 @@ class LLMAgent:
         self.memory = LLMMemory(self.settings.context)
         self.llm_client = None
         self.agent = None
-        self.agent_executor = None
         
         # Configurar herramientas: usar las proporcionadas o las predeterminadas
         self.tools = tools if tools is not None else DEFAULT_TOOLS.copy()
         
         # Configuración para el prompt del agente ReAct
-        self.verbose = True  # Por defecto, mostrar el razonamiento del agente
+        self.verbose = False
         
         self._recreate_agent()
 
@@ -177,29 +176,16 @@ class LLMAgent:
         if not self.llm_client:
             print("Error: No se puede crear el agente sin un cliente LLM válido.")
             self.agent = None
-            self.agent_executor = None
             return
 
         try:
-            # Obtener el prompt ReAct desde LangChain Hub
-            prompt = hub.pull("hwchase17/react") + "\n" + self.settings.context
-            
             # Crear el agente ReAct
-            self.agent = create_react_agent(self.llm_client, self.tools, prompt)
-            
-            # Crear el ejecutor del agente
-            self.agent_executor = AgentExecutor(
-                agent=self.agent,
-                tools=self.tools,
-                verbose=self.verbose,
-                handle_parsing_errors=True,
-                max_iterations=10  # Límite de iteraciones para evitar bucles infinitos
-            )
+            self.agent = create_react_agent(self.llm_client, self.tools, self.settings.context, verbose=self.verbose)
+
             print("Agente ReAct creado exitosamente.")
         except Exception as e:
             print(f"Error al crear el agente ReAct: {e}")
             self.agent = None
-            self.agent_executor = None
 
     def add_tool(self, tool: Tool):
         """
@@ -230,15 +216,6 @@ class LLMAgent:
         """
         return [tool.name for tool in self.tools]
 
-    def set_verbose(self, verbose: bool):
-        """
-        Configura si el agente debe mostrar su razonamiento paso a paso.
-        """
-        self.verbose = verbose
-        if self.agent_executor:
-            self.agent_executor.verbose = verbose
-        print(f"Modo verbose del agente configurado a: {verbose}")
-
     def update_settings(self, new_settings: Dict[str, Any]):
         """
         Actualiza la configuración del agente y lo recrea si es necesario.
@@ -253,7 +230,7 @@ class LLMAgent:
         """
         Invoca al agente ReAct con un input y devuelve la respuesta completa.
         """
-        if not self.agent_executor:
+        if not self.agent:
             error_msg = "Error: El agente no está inicializado. Verifica la configuración y las credenciales."
             print(error_msg)
             return {"error": error_msg}
@@ -263,7 +240,7 @@ class LLMAgent:
         
         try:
             print(f"Invocando agente con: {input_text}")
-            response = self.agent_executor.invoke({"input": input_text})
+            response = self.agent.invoke({"input": input_text})
             
             # Extraer la respuesta del agente
             output = response.get("output", "No se pudo obtener respuesta del agente.")
