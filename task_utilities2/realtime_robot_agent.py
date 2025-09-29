@@ -62,24 +62,20 @@ class RealtimeRobotAgent:
         
         # Create robot tools - only the most relevant ones
         robot_tools = self._create_robot_tools()
+
+        context = self.task_module.load_robot_context(robot_name=self.robot_name)
+
+        # Initialize realtime transcription
+        self.task_module.speech.set_transcription_mode(enabled=True, language='en')
+
+
         
         # Create the robot agent
         self.robot_agent = LLMAgent(
             initial_settings={
                 "model_name": "gpt-4o-azure",
                 "temperature": 0.3,
-                "context": """You are a helpful and friendly robot assistant. You can:
-- Speak out loud to communicate
-- Change your eye colors to express emotions or provide visual feedback
-- Take pictures by playing a special animation
-
-Keep your responses natural, conversational, and concise. Use your capabilities 
-thoughtfully to enhance the interaction. For example:
-- Use eye colors to show emotions (red for alert, blue for calm, green for positive, etc.)
-- Take pictures when asked or when it would be helpful
-- Speak clearly and be engaging
-
-Always be helpful and responsive to the user's requests."""
+                "context": context
             },
             tools=robot_tools
         )
@@ -87,17 +83,6 @@ Always be helpful and responsive to the user's requests."""
         print("Robot agent initialized! Available tools:")
         for tool_name in self.robot_agent.list_tools():
             print(f"  - {tool_name}")
-        
-        # Initialize for real-time interaction
-        success = self.task_module.initialize_for_realtime_interaction(
-            robot_name=self.robot_name, 
-            language='en'
-        )
-        
-        if not success:
-            self.task_module.get_logger().error("Failed to initialize real-time interaction")
-            return False
-            
         return True
     
     def _create_robot_tools(self):
