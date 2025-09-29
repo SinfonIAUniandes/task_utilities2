@@ -79,6 +79,8 @@ class RealtimeRobotAgent:
             },
             tools=robot_tools
         )
+
+        self.task_module.set_interactive_pepper_settings()
         
         print("Robot agent initialized! Available tools:")
         for tool_name in self.robot_agent.list_tools():

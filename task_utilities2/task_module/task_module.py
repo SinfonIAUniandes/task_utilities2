@@ -147,6 +147,24 @@ class TaskModule(Node):
             return False
         return True
     
+    def set_default_pepper_settings(self):
+        if self._check_proxy_availability('miscellaneous'):
+            self.miscellaneous.set_autonomous_state(False)
+            self.miscellaneous.set_basic_awareness_state(False)
+            self.miscellaneous.toggle_breathing("All", False)
+            self.miscellaneous.go_to_posture("Stand")
+        if self._check_proxy_availability('speech'):
+            self.speech.set_volume(70)
+    
+    def set_interactive_pepper_settings(self):
+        if self._check_proxy_availability('miscellaneous'):
+            self.miscellaneous.set_autonomous_state(False)
+            self.miscellaneous.set_basic_awareness_state(True)
+            self.miscellaneous.toggle_breathing("All", True)
+            self.miscellaneous.go_to_posture("Stand")
+        if self._check_proxy_availability('speech'):
+            self.speech.set_volume(50)
+
     def load_robot_context(self, robot_name=None):
         """
         Load context for a specific robot from the data directory.

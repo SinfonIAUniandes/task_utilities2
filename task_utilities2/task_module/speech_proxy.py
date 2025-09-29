@@ -3,7 +3,7 @@ from threading import Thread
 
 from speech_msgs2.srv import SpeechToText, RecordAudio, SetTranscriptionMode
 from speech_msgs2.srv import SetLLMSettings, LLMResponse
-from naoqi_utilities_msgs.srv import Say
+from naoqi_utilities_msgs.srv import Say, SetVolume
 from std_srvs.srv import Trigger
 
 
@@ -34,7 +34,8 @@ class SpeechProxy:
         self.llm_response_client = self.node.create_client(LLMResponse, f"/{conversation_node_name}/llm_response")
         self.llm_clear_history_client = self.node.create_client(Trigger, f"/{conversation_node_name}/clear_llm_history")
         self.say_client = self.node.create_client(Say, "/naoqi_speech_node/say")
-        
+        self.set_volume_client = self.node.create_client(SetVolume, "/naoqi_speech_node/set_volume")
+
         # Wait for services to be available
         self.wait_for_services()
         
@@ -51,7 +52,8 @@ class SpeechProxy:
             (self.llm_settings_client, 'set_llm_settings'),
             (self.llm_response_client, 'llm_response'),
             (self.llm_clear_history_client, 'clear_llm_history'),
-            (self.say_client, 'say')
+            (self.say_client, 'say'),
+            (self.set_volume_client, 'set_volume')
         ]
         
         for client, service_name in services:
@@ -179,6 +181,28 @@ class SpeechProxy:
         
         response = self.llm_clear_history_client.call(request)
         return response.success if response else False
+
+    def set_volume(self, volume: int) -> bool:
+        """
+        Sets the robot's master speaker volume.
+        
+        Args:
+            volume (int): Volume level (0-100)
+        
+        Returns:
+            True if the volume was set successfully, False otherwise.
+        """
+        
+        if volume < 0 or volume > 100:
+            self.node.get_logger().error("Volume must be between 0 and 100")
+            return False
+        
+        request = SetVolume.Request()
+        request.volume = volume
+        
+        response = self.set_volume_client.call(request)
+        return response.success if response else False
+        
     
     def say(self, text_say: str, language_say="English", animated_say=False, asynchronous_say=False) -> bool:
         """
