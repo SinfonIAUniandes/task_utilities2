@@ -45,7 +45,9 @@ class RealtimeRobotAgent:
         # Create TaskModule instance
         self.task_module = TaskModule(
             node_name="realtime_robot_agent",
-            robot_name=self.robot_name
+            robot_name=self.robot_name,
+            enable_speech=True,
+            enable_miscellaneous=True
         )
         
         # Start ROS2 spin in separate thread

@@ -27,7 +27,8 @@ def main():
     # Create TaskModule instance
     task_module = TaskModule(
         node_name="manipulation_example",
-        robot_name="demo_robot"
+        robot_name="demo_robot",
+        enable_miscellaneous=True
     )
     spin_thread = Thread(target=rclpy.spin, args=(task_module,))
     spin_thread.start()

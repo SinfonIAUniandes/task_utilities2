@@ -14,7 +14,7 @@ def main():
     rclpy.init()
     
     # Create TaskModule instance
-    task_module = TaskModule(robot_name="nova")
+    task_module = TaskModule(robot_name="nova",enable_miscellaneous=True,enable_speech=True)
     
     # Run spin in separate thread
     spin_thread = Thread(target=rclpy.spin, args=(task_module,))

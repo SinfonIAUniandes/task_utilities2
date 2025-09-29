@@ -14,7 +14,7 @@ from task_utilities2.task_module.task_module import TaskModule
 
 # --- Global task_module object ---
 rclpy.init()
-task_module = TaskModule()
+task_module = TaskModule(enable_speech=True)
 
 def process_transcription(transcription):
     """

@@ -31,7 +31,9 @@ def main():
     # Create TaskModule instance
     task_module = TaskModule(
         node_name="minimal_robot_agent",
-        robot_name="nova"
+        robot_name="nova",
+        enable_speech=True,
+        enable_miscellaneous=True
     )
     
     # Run ROS2 spin in separate thread
