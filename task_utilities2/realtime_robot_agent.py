@@ -67,8 +67,6 @@ class RealtimeRobotAgent:
 
         # Initialize realtime transcription
         self.task_module.speech.set_transcription_mode(enabled=True, language='en')
-
-
         
         # Create the robot agent
         self.robot_agent = LLMAgent(
