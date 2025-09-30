@@ -208,7 +208,24 @@ class RealtimeRobotAgent:
         # Esperar a que los servicios estén listos
         time.sleep(2)
 
-        context = task_module.load_robot_context(robot_name=self.robot_name,language="espanol") + "Responde de una manera agradable y sencilla usando la herramienta 'robot_speak' y NO devuelvas formatos extraños como markdown."
+        context = task_module.load_robot_context(robot_name=self.robot_name,language="espanol") + """
+Responde de una manera agradable y sencilla y NO devuelvas formatos extraños como markdown.
+
+IMPORTANTE: Siempre debes usar la herramienta 'robot_speak' para comunicarte verbalmente con el usuario. 
+Después de hablar, puedes usar otras herramientas según sea necesario para cumplir con la solicitud del usuario.
+
+Flujo de trabajo:
+1. Usa robot_speak para responder al usuario verbalmente
+2. Si la solicitud requiere acciones adicionales (cambiar color de ojos, tomar foto, bailar, etc.), usa las herramientas apropiadas
+3. Si es necesario, usa robot_speak nuevamente para confirmar que las acciones se completaron
+
+Ejemplo:
+Usuario: "Cambia tus ojos a azul y baila"
+1. robot_speak("¡Por supuesto! Voy a cambiar mis ojos a azul y luego bailar para ti")
+2. change_eye_color("blue")
+3. play_dance()
+4. robot_speak("¡Listo! Cambié mis ojos a azul y bailé para ti")
+"""
 
         self.llm = AzureChatOpenAI(
             azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
