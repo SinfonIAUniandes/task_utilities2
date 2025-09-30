@@ -73,10 +73,28 @@ def get_current_time() -> str:
 
 @tool
 def play_dance() -> str:
-    """Makes the robot do a random dance"""
+    """Makes the robot do a dance passed as a parameter. The options are:
+    arcadia
+    asereje
+    gangnamstyle
+    macarena
+    disco
+    la_bamba
+    """
     try:
-        dances = ["Stand/arcadia/full_launcher","Stand/asereje/full_launcher","Stand/jgangnamstyle/full_launcher","Stand/Macarena/full_launcher","Stand/jammin/full_launcher","Stand/disco/full_launcher"]
-        chosen_dance = random.choice(dances)
+        dance_name = dance_name.lower()
+        if dance_name=="arcadia":
+            chosen_dance = "Stand/arcadia/full_launcher"
+        elif dance_name=="asereje":
+            chosen_dance = "Stand/asereje/full_launcher"
+        elif dance_name=="gangnamstyle":
+            chosen_dance = "Stand/jgangnamstyle/full_launcher"
+        elif dance_name=="macarena":
+            chosen_dance = "Stand/Macarena/full_launcher"
+        elif dance_name=="disco":
+            chosen_dance = "Stand/disco/full_launcher"
+        elif dance_name=="la_bamba":
+            chosen_dance = "Stand/la_bamba/full_launcher"
         task_module.miscellaneous.play_animation(chosen_dance)
         return "Successfully danced!"
     except Exception as e:
@@ -262,7 +280,7 @@ class RealtimeRobotAgent:
         finally:
             # Always re-enable transcription
             print("Re-enabling transcription...")
-            time.sleep(1)  # Brief pause before re-enabling
+            time.sleep(0.5)  # Brief pause before re-enabling
             task_module.speech.set_transcription_mode(enabled=True, language='en')
             self.is_processing = False
     

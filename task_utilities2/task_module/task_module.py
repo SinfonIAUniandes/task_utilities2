@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-
-import rclpy
 from rclpy.node import Node
-from threading import Thread
 import os
+import time
 
 # Import proxy classes
 from .speech_proxy import SpeechProxy
@@ -150,18 +148,24 @@ class TaskModule(Node):
     def set_default_pepper_settings(self):
         if self._check_proxy_availability('miscellaneous'):
             self.miscellaneous.set_autonomous_state(False)
+            time.sleep(1)
             self.miscellaneous.toggle_awareness(False)
-            self.miscellaneous.toggle_breathing("All", False)
+            time.sleep(1)
             self.miscellaneous.go_to_posture("Stand")
+            time.sleep(1)
+            self.miscellaneous.toggle_breathing("All", False)
         if self._check_proxy_availability('speech'):
             self.speech.set_volume(70)
     
     def set_interactive_pepper_settings(self):
         if self._check_proxy_availability('miscellaneous'):
             self.miscellaneous.set_autonomous_state(False)
+            time.sleep(1)
             self.miscellaneous.toggle_awareness(True)
-            self.miscellaneous.toggle_breathing("All", True)
+            time.sleep(1)
             self.miscellaneous.go_to_posture("Stand")
+            time.sleep(1)
+            self.miscellaneous.toggle_breathing("All", True)
         if self._check_proxy_availability('speech'):
             self.speech.set_volume(70)
 

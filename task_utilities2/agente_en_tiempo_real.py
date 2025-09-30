@@ -72,11 +72,29 @@ def get_current_time() -> str:
     return f"La hora actual es {current_time}"
 
 @tool
-def play_dance() -> str:
-    """Hace que el robot haga un baile aleatorio"""
+def play_dance(dance_name: str) -> str:
+    """Hace que el robot haga un baile pasado por parametro, las opciones son:
+    arcadia
+    asereje
+    gangnamstyle
+    macarena
+    disco
+    la_bamba
+    """
     try:
-        dances = ["Stand/arcadia/full_launcher","Stand/asereje/full_launcher","Stand/jgangnamstyle/full_launcher","Stand/Macarena/full_launcher","Stand/jammin/full_launcher","Stand/disco/full_launcher"]
-        chosen_dance = random.choice(dances)
+        dance_name = dance_name.lower()
+        if dance_name=="arcadia":
+            chosen_dance = "Stand/arcadia/full_launcher"
+        elif dance_name=="asereje":
+            chosen_dance = "Stand/asereje/full_launcher"
+        elif dance_name=="gangnamstyle":
+            chosen_dance = "Stand/jgangnamstyle/full_launcher"
+        elif dance_name=="macarena":
+            chosen_dance = "Stand/Macarena/full_launcher"
+        elif dance_name=="disco":
+            chosen_dance = "Stand/disco/full_launcher"
+        elif dance_name=="la_bamba":
+            chosen_dance = "Stand/la_bamba/full_launcher"
         task_module.miscellaneous.play_animation(chosen_dance)
         return "¡Bailado con éxito!"
     except Exception as e:
@@ -268,7 +286,7 @@ class RealtimeRobotAgent:
         finally:
             # Siempre volver a habilitar la transcripción
             print("Volviendo a habilitar la transcripción...")
-            time.sleep(1)  # Breve pausa antes de volver a habilitar
+            time.sleep(0.5)  # Breve pausa antes de volver a habilitar
             task_module.speech.set_transcription_mode(enabled=True, language='es')
             self.is_processing = False
     
