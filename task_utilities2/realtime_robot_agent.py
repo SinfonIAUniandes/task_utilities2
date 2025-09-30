@@ -9,6 +9,7 @@ from threading import Thread
 from task_utilities2.task_module.task_module import TaskModule
 from langchain_core.messages import HumanMessage
 import time
+import random
 
 load_dotenv()
 
@@ -55,10 +56,10 @@ def change_eye_color(color_name: str) -> str:
 
 @tool
 def take_picture() -> str:
-    """Make the robot take a picture by playing the take picture animation."""
+    """Makes the robot take a picture by playing the take picture animation."""
     try:
         task_module.miscellaneous.play_animation("Stand/Waiting/TakePicture_1")
-        return "Successfully took a picture! *click* 📸"
+        return "Successfully took a picture!"
     except Exception as e:
         return f"Error taking picture: {e}"
 
@@ -70,15 +71,102 @@ def get_current_time() -> str:
     return f"Current time is {current_time}"
 
 @tool
-def take_picture() -> str:
-    """Make the robot take a picture by playing the take picture animation."""
+def play_dance() -> str:
+    """Makes the robot do a random dance"""
     try:
-        task_module.miscellaneous.play_animation("Stand/Waiting/TakePicture_1")
-        return "Successfully took a picture! *click* 📸"
+        dances = ["Stand/arcadia/full_launcher","Stand/asereje/full_launcher","Stand/jgangnamstyle/full_launcher","Stand/Macarena/full_launcher","Stand/jammin/full_launcher","Stand/disco/full_launcher"]
+        chosen_dance = random.choice(dances)
+        task_module.miscellaneous.play_animation(chosen_dance)
+        return "Successfully danced!"
     except Exception as e:
         return f"Error taking picture: {e}"
+    
+@tool
+def play_guitar() -> str:
+    """Makes the robot play the guitar"""
+    try:
+        task_module.miscellaneous.play_animation("Stand/Waiting/AirGuitar_1")
+        return "Successfully played the guitar!"
+    except Exception as e:
+        return f"Error taking picture: {e}"
+    
+@tool
+def throw_kisses() -> str:
+    """Makes the robot throw kisses"""
+    try:
+        task_module.miscellaneous.play_animation("Stand/Gestures/Kisses_1")
+        return "Successfully threw kisses!"
+    except Exception as e:
+        return f"Error taking picture: {e}"
+    
+@tool
+def pose_for_picture() -> str:
+    """Makes the robot strike a pose for a picture"""
+    try:
+        task_module.miscellaneous.toggle_breathing(joint_group="All",enabled=False)
+        task_module.miscellaneous.play_animation("Stand/Gestures/ShowSky_8")
+        time.sleep(2)
+        task_module.miscellaneous.toggle_breathing(joint_group="All",enabled=True)
+        return "Successfully posed!"
+    except Exception as e:
+        return f"Error taking picture: {e}"
+    
+@tool
+def show_heart_gesture() -> str:
+    """Makes the robot show a 'Love You/Heart' gesture."""
+    try:
+        task_module.miscellaneous.play_animation("Stand/Waiting/LoveYou_1")
+        return "Successfully showed a heart gesture!"
+    except Exception as e:
+        return f"Error showing heart gesture: {e}"
 
-tools = [robot_speak, change_eye_color, take_picture, get_current_time]
+@tool
+def make_a_call_gesture() -> str:
+    """Makes the robot play the 'Call Someone' animation."""
+    try:
+        task_module.miscellaneous.play_animation("Stand/Waiting/CallSomeone_1")
+        return "Successfully played the 'Call Someone' animation!"
+    except Exception as e:
+        return f"Error playing 'Call Someone': {e}"
+
+@tool
+def act_like_a_zombie() -> str:
+    """Makes the robot play the 'Zombie' animation."""
+    try:
+        task_module.miscellaneous.play_animation("Stand/Waiting/Zombie_1")
+        return "Successfully played the 'Zombie' animation!"
+    except Exception as e:
+        return f"Error playing 'Zombie': {e}"
+
+@tool
+def drive_a_car_gesture() -> str:
+    """Makes the robot play the 'Drive Car' animation."""
+    try:
+        task_module.miscellaneous.play_animation("Stand/Waiting/DriveCar_1")
+        return "Successfully played the 'Drive Car' animation!"
+    except Exception as e:
+        return f"Error playing 'Drive Car': {e}"
+
+@tool
+def show_muscles() -> str:
+    """Makes the robot play the 'Show Muscles' animation."""
+    try:
+        task_module.miscellaneous.play_animation("Stand/Waiting/ShowMuscles_3")
+        return "Successfully played the 'Show Muscles' animation!"
+    except Exception as e:
+        return f"Error playing 'Show Muscles': {e}"
+
+
+@tool
+def perform_bow_gesture() -> str:
+    """Makes the robot play the 'Bow' gesture (e.g., as thanks)."""
+    try:
+        task_module.miscellaneous.play_animation("Stand/Gestures/BowShort_3")
+        return "Successfully performed the bow gesture!"
+    except Exception as e:
+        return f"Error performing bow: {e}"
+
+tools = [robot_speak, change_eye_color, take_picture, get_current_time,play_dance,show_heart_gesture,make_a_call_gesture,act_like_a_zombie,drive_a_car_gesture,show_muscles,perform_bow_gesture]
 
 
 class RealtimeRobotAgent:
