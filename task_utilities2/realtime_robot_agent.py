@@ -101,12 +101,9 @@ def throw_kisses() -> str:
     
 @tool
 def pose_for_picture() -> str:
-    """Makes the robot strike a pose for a picture"""
+    """Makes the robot strike a pose for a picture."""
     try:
-        task_module.miscellaneous.toggle_breathing(joint_group="All",enabled=False)
         task_module.miscellaneous.play_animation("Stand/Gestures/ShowSky_8")
-        time.sleep(2)
-        task_module.miscellaneous.toggle_breathing(joint_group="All",enabled=True)
         return "Successfully posed!"
     except Exception as e:
         return f"Error taking picture: {e}"
@@ -166,7 +163,7 @@ def perform_bow_gesture() -> str:
     except Exception as e:
         return f"Error performing bow: {e}"
 
-tools = [robot_speak, change_eye_color, take_picture, get_current_time,play_dance,show_heart_gesture,make_a_call_gesture,act_like_a_zombie,drive_a_car_gesture,show_muscles,perform_bow_gesture]
+tools = [robot_speak, change_eye_color, take_picture, get_current_time,play_dance,show_heart_gesture,make_a_call_gesture,act_like_a_zombie,drive_a_car_gesture,show_muscles,perform_bow_gesture,pose_for_picture]
 
 
 class RealtimeRobotAgent:
@@ -221,7 +218,7 @@ class RealtimeRobotAgent:
         
         try:
             print(f'User said: "{transcription_text}"')
-            
+
             # Disable transcription to prevent feedback loop
             print("Disabling transcription during response...")
             task_module.speech.set_transcription_mode(enabled=False)
@@ -243,7 +240,7 @@ class RealtimeRobotAgent:
                 # If the agent's final message is a text response (not a tool call), have the robot speak it.
                 # If the agent called a tool (like robot_speak), the tool execution already happened.
                 # In a standard ReAct setup, the final AI message is the spoken response.
-                task_module.speech.say(final_response_text, animated_say=True)
+                task_module.speech.say(final_response_text, animated_say=False)
                 
             # If the final message *was* a tool call, the tool execution would have occurred 
             # within the agent's loop, and the `robot_speak` tool would have handled the output.
