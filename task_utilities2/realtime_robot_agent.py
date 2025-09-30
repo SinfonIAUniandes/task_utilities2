@@ -217,6 +217,7 @@ class RealtimeRobotAgent:
         self.is_processing = True
         
         try:
+            task_module.miscellaneous.play_animation("Stand/Waiting/Think_3")
             print(f'User said: "{transcription_text}"')
 
             # Disable transcription to prevent feedback loop
@@ -240,7 +241,7 @@ class RealtimeRobotAgent:
                 # If the agent's final message is a text response (not a tool call), have the robot speak it.
                 # If the agent called a tool (like robot_speak), the tool execution already happened.
                 # In a standard ReAct setup, the final AI message is the spoken response.
-                task_module.speech.say(final_response_text, animated_say=False)
+                task_module.speech.say(final_response_text, animated_say=True)
                 
             # If the final message *was* a tool call, the tool execution would have occurred 
             # within the agent's loop, and the `robot_speak` tool would have handled the output.

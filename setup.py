@@ -24,7 +24,7 @@ setup(
             'miscellaneous_example = task_utilities2.miscellaneous_functionality_example:main',
             'manipulation_example = task_utilities2.manipulation_example:main',
             'minimal_robot_agent = task_utilities2.minimal_robot_agent_example:main',
-            'realtime_robot_agent = task_utilities2.realtime_robot_agent:main'
+            'realtime_robot_agent = task_utilities2.realtime_robot_agent:main',
             'agente_en_tiempo_real = task_utilities2.agente_en_tiempo_real:main'
         ],
     },

@@ -217,6 +217,7 @@ class RealtimeRobotAgent:
         self.is_processing = True
         
         try:
+            task_module.miscellaneous.play_animation("Stand/Waiting/Think_3")
             print(f'El usuario dijo: "{transcription_text}"')
 
             # Deshabilitar la transcripción para evitar un bucle de retroalimentación
