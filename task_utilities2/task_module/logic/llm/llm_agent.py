@@ -1,7 +1,7 @@
+# filepath: /home/cuevas/github_cosas/task_utilities2/task_utilities2/task_module/logic/llm/llm_agent.py
 from typing import Optional, Dict, Any, List, Callable
 import os
 from datetime import datetime
-import json
 
 # Importar clases de lógica interna
 from .llm_settings import LLMSettings
@@ -11,20 +11,19 @@ from dotenv import load_dotenv
 # Cargar variables de entorno desde un archivo .env si existe
 load_dotenv()
 
-# Importar adaptadores de LangChain para agentes (modernized imports)
+# Importar adaptadores de LangChain para agentes
 try:
     from langchain_community.chat_models import AzureChatOpenAI, ChatOpenAI
     from langchain_ollama import ChatOllama
     from langchain.tools import Tool
     from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, BaseMessage
-    from langgraph.prebuilt import create_react_agent  # Modern LangGraph import
-    from langchain.prompts import PromptTemplate
+    from langgraph.prebuilt import create_react_agent
 except ImportError:
-    print("Advertencia: Faltan dependencias de LangChain/LangGraph para agentes. Instálalas con 'pip install langchain langchain-openai langchain-community langchain-ollama langgraph python-dotenv'")
+    print("Advertencia: Faltan dependencias de LangChain para agentes. Instálalas con 'pip install langchain langchain-openai langchain-community langchain-ollama langgraph python-dotenv'")
     AzureChatOpenAI, ChatOpenAI, ChatOllama = None, None, None
-    create_react_agent, Tool = None, None
+    Tool = None
     AIMessage, HumanMessage, SystemMessage, BaseMessage = None, None, None, None
-    PromptTemplate = None
+    create_react_agent = None
 
 # Usar el mismo registro de modelos que el LLMHandler
 MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {
@@ -89,12 +88,12 @@ DEFAULT_TOOLS: List[Tool] = [
 
 class LLMAgent:
     """
-    Clase orquestadora para interactuar con un agente ReAct LLM usando LangGraph.
+    Clase orquestadora para interactuar con un agente ReAct LLM.
     Gestiona la configuración, la memoria, las herramientas y la creación de agentes LLM.
     """
     def __init__(self, initial_settings: Optional[Dict[str, Any]] = None, tools: Optional[List[Tool]] = None):
         if not all([AzureChatOpenAI, ChatOpenAI, ChatOllama, create_react_agent]):
-            raise ImportError("Las dependencias de LangChain/LangGraph para agentes no están instaladas. Ejecuta: pip install langchain langchain-openai langchain-community langchain-ollama langgraph python-dotenv")
+            raise ImportError("Las dependencias de LangChain para agentes no están instaladas. Ejecuta: pip install langchain langchain-openai langchain-community langchain-ollama langgraph python-dotenv")
 
         self.settings = LLMSettings()
         if initial_settings:
@@ -163,22 +162,9 @@ class LLMAgent:
             print(f"Error al crear el cliente LLM para agente '{model_name}': {e}")
             self.llm_client = None
 
-    def _create_system_prompt(self, state):
-        """
-        Crea el prompt del sistema para el agente, similar al patrón de evaluation-agent.
-        """
-        messages = state.get("messages", [])
-        
-        system_prompt = [{
-            "role": "system", 
-            "content": self.settings.context
-        }] + messages
-        
-        return system_prompt
-
     def _recreate_agent(self):
         """
-        Crea (o recrea) el agente ReAct basado en la configuración actual usando LangGraph.
+        Crea (o recrea) el agente ReAct basado en la configuración actual.
         """
         self._recreate_client()
         
@@ -188,16 +174,30 @@ class LLMAgent:
             return
 
         try:
-            # Crear el agente ReAct usando LangGraph (modern approach)
+            # Crear el agente ReAct usando LangGraph
             self.agent = create_react_agent(
-                self.llm_client, 
+                self.llm_client,
                 tools=self.tools,
-                prompt=self._create_system_prompt
+                prompt=self._create_prompt
             )
-            print("Agente ReAct creado exitosamente con LangGraph.")
+            print("Agente ReAct creado exitosamente.")
         except Exception as e:
             print(f"Error al crear el agente ReAct: {e}")
             self.agent = None
+
+    def _create_prompt(self, state):
+        """Create the prompt for the React agent."""
+        messages = state.get("messages", [])
+        
+        # Add system message if context is provided
+        if self.settings.context:
+            system_prompt = [{
+                "role": "system", 
+                "content": self.settings.context
+            }]
+            return system_prompt + messages
+        
+        return messages
 
     def add_tool(self, tool: Tool):
         """
@@ -238,10 +238,9 @@ class LLMAgent:
         self._recreate_agent()
         print("Configuración del agente actualizada y agente recreado.")
 
-    def invoke_agent(self, input_text: str, additional_context: str = "") -> Dict[str, Any]:
+    def invoke_agent(self, input_text: str) -> Dict[str, Any]:
         """
         Invoca al agente ReAct con un input y devuelve la respuesta completa.
-        Modernized to use LangGraph's state pattern like evaluation-agent.
         """
         if not self.agent:
             error_msg = "Error: El agente no está inicializado. Verifica la configuración y las credenciales."
@@ -254,20 +253,17 @@ class LLMAgent:
         try:
             print(f"Invocando agente con: {input_text}")
             
-            # Prepare the message with additional context if provided
-            full_message = input_text
-            if additional_context:
-                full_message += f"\n\nContexto adicional: {additional_context}"
-            
-            # Create state object similar to evaluation-agent pattern
+            # Create state with message history
             state = {
-                "messages": [{"role": "user", "content": full_message}]
+                "messages": [
+                    {"role": "user", "content": input_text}
+                ]
             }
             
             # Invoke the agent with the state
             result = self.agent.invoke(state)
             
-            # Extract the final message content
+            # Extract the final message from the agent
             if "messages" in result and result["messages"]:
                 final_message = result["messages"][-1]
                 if hasattr(final_message, 'content'):
@@ -280,11 +276,11 @@ class LLMAgent:
             # Agregar la respuesta del agente a la memoria
             self.memory.add_message("assistant", output)
             
-            # Return structured response
+            # Return formatted response
             return {
                 "output": output,
-                "full_result": result,
-                "success": True
+                "messages": result.get("messages", []),
+                "state": result
             }
             
         except Exception as e:
@@ -294,33 +290,23 @@ class LLMAgent:
             history = self.memory.get_history()
             if history and history[-1]["role"] == "user":
                 history.pop()
-            return {"error": error_msg, "success": False}
+            return {"error": error_msg}
 
-    def get_response(self, prompt: str, additional_context: str = "") -> str:
+    def invoke_with_structured_response(self, input_text: str, expected_format: str = "json") -> Dict[str, Any]:
         """
-        Método de conveniencia que devuelve solo la respuesta de texto del agente.
+        Invoca al agente y intenta parsear una respuesta estructurada.
+        Similar al patrón usado en evaluation-agent.py
         """
-        result = self.invoke_agent(prompt, additional_context)
-        if "error" in result:
-            return result["error"]
-        return result.get("output", "No se pudo obtener respuesta del agente.")
-
-    def get_structured_response(self, prompt: str, additional_context: str = "", 
-                              response_format: str = "json") -> Dict[str, Any]:
-        """
-        Obtiene una respuesta estructurada del agente, similar al patrón de evaluation-agent.
-        """
-        result = self.invoke_agent(prompt, additional_context)
+        result = self.invoke_agent(input_text)
         
         if "error" in result:
-            return {"error": result["error"], "success": False}
-        
+            return result
+            
         output = result.get("output", "")
         
-        # Try to parse structured response if requested
-        if response_format.lower() == "json":
+        if expected_format == "json":
             try:
-                # Look for JSON in the response
+                # Try to extract JSON from the response
                 if "```json" in output:
                     json_start = output.find("```json") + 7
                     json_end = output.find("```", json_start)
@@ -334,24 +320,63 @@ class LLMAgent:
                     else:
                         json_str = output
                 
-                parsed_response = json.loads(json_str)
+                import json
+                parsed_result = json.loads(json_str)
+                
                 return {
-                    "structured_data": parsed_response,
+                    "success": True,
+                    "parsed_response": parsed_result,
                     "raw_output": output,
-                    "success": True
+                    "state": result.get("state", {})
                 }
                 
             except (json.JSONDecodeError, ValueError) as e:
                 return {
-                    "error": f"No se pudo parsear la respuesta como JSON: {e}",
+                    "success": False,
+                    "error": f"Failed to parse JSON response: {e}",
                     "raw_output": output,
-                    "success": False
+                    "state": result.get("state", {})
                 }
         
+        # For non-JSON formats, return raw output
         return {
+            "success": True,
             "raw_output": output,
-            "success": True
+            "state": result.get("state", {})
         }
+
+    def get_response(self, prompt: str) -> str:
+        """
+        Método de conveniencia que devuelve solo la respuesta de texto del agente.
+        """
+        result = self.invoke_agent(prompt)
+        if "error" in result:
+            return result["error"]
+        
+        output = result.get("output", "")
+        
+        # Try to extract clean text response if it's wrapped in JSON or other formats
+        try:
+            if output.strip().startswith('```') and output.strip().endswith('```'):
+                # Remove code block markers
+                lines = output.strip().split('\n')
+                if len(lines) > 2:
+                    output = '\n'.join(lines[1:-1])
+            elif output.strip().startswith('{') and output.strip().endswith('}'):
+                # Try to parse JSON and extract meaningful content
+                import json
+                json_data = json.loads(output)
+                if isinstance(json_data, dict):
+                    # Look for common response fields
+                    for field in ['response', 'message', 'answer', 'result', 'output']:
+                        if field in json_data:
+                            output = str(json_data[field])
+                            break
+        except (json.JSONDecodeError, ValueError):
+            # If parsing fails, use original output
+            pass
+            
+        return output or "No se pudo obtener respuesta del agente."
 
     def clear_history(self):
         """
@@ -365,3 +390,106 @@ class LLMAgent:
         Devuelve el historial completo de la conversación.
         """
         return self.memory.get_history()
+
+class ModernLLMAgentWrapper:
+    """
+    Wrapper class for the modernized LLM agent, following the pattern from evaluation-agent.py.
+    Provides a cleaner interface and better error handling.
+    """
+    
+    def __init__(self, initial_settings: Optional[Dict[str, Any]] = None, tools: Optional[List[Tool]] = None):
+        """Initialize the modern LLM agent wrapper."""
+        self.agent = LLMAgent(initial_settings, tools)
+    
+    def chat(self, message: str) -> Dict[str, Any]:
+        """
+        Simple chat interface that returns a structured response.
+        
+        Args:
+            message: The user message/prompt
+            
+        Returns:
+            Dictionary with response information
+        """
+        try:
+            result = self.agent.invoke_agent(message)
+            
+            if "error" in result:
+                return {
+                    "success": False,
+                    "error": result["error"],
+                    "response": "Sorry, I encountered an error processing your request."
+                }
+            
+            return {
+                "success": True,
+                "response": result.get("output", "No response generated"),
+                "raw_result": result
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Unexpected error: {str(e)}",
+                "response": "Sorry, I encountered an unexpected error."
+            }
+    
+    def process_with_tools(self, message: str, expected_format: str = "text") -> Dict[str, Any]:
+        """
+        Process a message using the agent's tools with structured output.
+        
+        Args:
+            message: The user message/prompt
+            expected_format: Expected format of the response ("text", "json")
+            
+        Returns:
+            Dictionary with structured response
+        """
+        try:
+            if expected_format == "json":
+                result = self.agent.invoke_with_structured_response(message, "json")
+            else:
+                result = self.agent.invoke_agent(message)
+                if "error" not in result:
+                    result = {
+                        "success": True,
+                        "raw_output": result.get("output", ""),
+                        "state": result
+                    }
+                else:
+                    result = {
+                        "success": False,
+                        "error": result["error"]
+                    }
+            
+            return result
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Processing error: {str(e)}"
+            }
+    
+    def add_tool(self, tool: Tool):
+        """Add a tool to the agent."""
+        self.agent.add_tool(tool)
+    
+    def add_custom_tool(self, name: str, func: Callable, description: str):
+        """Add a custom tool to the agent."""
+        self.agent.add_custom_tool(name, func, description)
+    
+    def list_tools(self) -> List[str]:
+        """List available tools."""
+        return self.agent.list_tools()
+    
+    def clear_history(self):
+        """Clear conversation history."""
+        self.agent.clear_history()
+    
+    def get_history(self) -> List[Dict[str, str]]:
+        """Get conversation history."""
+        return self.agent.get_history()
+    
+    def update_settings(self, new_settings: Dict[str, Any]):
+        """Update agent settings."""
+        self.agent.update_settings(new_settings)
