@@ -165,7 +165,7 @@ class TaskModule(Node):
         if self._check_proxy_availability('speech'):
             self.speech.set_volume(70)
 
-    def load_robot_context(self, robot_name=None):
+    def load_robot_context(self, robot_name=None,language=None):
         """
         Load context for a specific robot from the data directory.
         
@@ -181,8 +181,13 @@ class TaskModule(Node):
         # Get the directory where this module is located
         current_dir = os.path.dirname(os.path.dirname(__file__)).replace("build","src")  # Go up one level from task_module
         context_file_path = os.path.join(current_dir, f'data/{robot_name}_context.txt')
+        if language:
+            context_file_path = os.path.join(current_dir, f'data/{language}/{robot_name}_context.txt')
+
 
         general_SinfonIA_context_path = os.path.join(current_dir, 'data/info_herramientas_SinfonIA.txt')
+        if language:
+            general_SinfonIA_context_path = os.path.join(current_dir, f'data/{language}/info_herramientas_SinfonIA.txt')
         
         try:
             with open(general_SinfonIA_context_path,"r",encoding="utf-8") as general_context_file:
