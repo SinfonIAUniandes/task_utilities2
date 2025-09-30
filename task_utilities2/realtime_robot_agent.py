@@ -10,6 +10,7 @@ from task_utilities2.task_module.task_module import TaskModule
 from langchain_core.messages import HumanMessage
 import time
 import random
+from collections import deque
 
 load_dotenv()
 
@@ -174,6 +175,7 @@ class RealtimeRobotAgent:
         self.robot_name = robot_name
         self.robot_agent = None
         self.is_processing = False
+        self.message_history = deque(maxlen=6)  # store last 3 human/agent pairs
 
     def initialize(self):
         """Initialize ROS2 and create the robot agent with tools."""
@@ -224,34 +226,34 @@ class RealtimeRobotAgent:
             print("Disabling transcription during response...")
             task_module.speech.set_transcription_mode(enabled=False)
             
+            # include short-term memory (last 3 exchanges) in agent input
+            current_human_message = HumanMessage(content=transcription_text)
             agent_input = {
-                "messages": [HumanMessage(content=transcription_text)]
+                "messages": list(self.message_history) + [current_human_message]
             }
+
             # Get response from the LLM agent
             response = self.robot_agent.invoke(agent_input) 
             
-            # 3. Extract the final response text from the agent's output
+            # Extract the final response text from the agent's output
             final_message = response['messages'][-1]
             final_response_text = final_message.content
+
+            # save to short-term memory (keep maxlen)
+            self.message_history.append(current_human_message)
+            self.message_history.append(final_message)
             
             print(f'Agent final message: {final_response_text}')
             
             # Use the extracted final text for robot_speak (if the agent didn't already use the tool)
             if not final_message.tool_calls:
-                # If the agent's final message is a text response (not a tool call), have the robot speak it.
-                # If the agent called a tool (like robot_speak), the tool execution already happened.
-                # In a standard ReAct setup, the final AI message is the spoken response.
                 task_module.speech.say(final_response_text, animated_say=True)
                 
-            # If the final message *was* a tool call, the tool execution would have occurred 
-            # within the agent's loop, and the `robot_speak` tool would have handled the output.
-            
             # Small delay to ensure any robot actions complete
             time.sleep(1)
             
         except Exception as e:
             print(f"Error processing transcription: {e}")
-            # Still try to speak an error message
             try:
                 task_module.speech.say("Sorry, I encountered an error processing your request.")
             except:

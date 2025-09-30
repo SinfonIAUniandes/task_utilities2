@@ -10,6 +10,7 @@ from task_utilities2.task_module.task_module import TaskModule
 from langchain_core.messages import HumanMessage
 import time
 import random
+from collections import deque
 
 load_dotenv()
 
@@ -174,6 +175,7 @@ class RealtimeRobotAgent:
         self.robot_name = robot_name
         self.robot_agent = None
         self.is_processing = False
+        self.message_history = deque(maxlen=6)  # Almacena los últimos 3 pares de mensajes (humano/IA)
 
     def initialize(self):
         """Inicializa ROS2 y crea el agente robot con herramientas."""
@@ -224,8 +226,10 @@ class RealtimeRobotAgent:
             print("Deshabilitando la transcripción durante la respuesta...")
             task_module.speech.set_transcription_mode(enabled=False)
             
+            current_human_message = HumanMessage(content=transcription_text)
+            
             agent_input = {
-                "messages": [HumanMessage(content=transcription_text)]
+                "messages": list(self.message_history) + [current_human_message]
             }
             # Obtener respuesta del agente LLM
             response = self.robot_agent.invoke(agent_input) 
@@ -233,6 +237,10 @@ class RealtimeRobotAgent:
             # 3. Extraer el texto de la respuesta final de la salida del agente
             final_message = response['messages'][-1]
             final_response_text = final_message.content
+
+            # Guardar el historial
+            self.message_history.append(current_human_message)
+            self.message_history.append(final_message)
             
             print(f'Mensaje final del agente: {final_response_text}')
             
