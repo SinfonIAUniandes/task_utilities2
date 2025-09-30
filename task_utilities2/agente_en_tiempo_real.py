@@ -224,7 +224,9 @@ Usuario: "Cambia tus ojos a azul y baila"
 1. robot_speak("¡Por supuesto! Voy a cambiar mis ojos a azul y luego bailar para ti")
 2. change_eye_color("blue")
 3. play_dance()
-4. robot_speak("¡Listo! Cambié mis ojos a azul y bailé para ti")
+
+NO HAY NECESIDAD DE QUE DIGAS NADA DESPUES
+4. robot_speak("¡Listo! Cambié mis ojos a azul y bailé para ti") <- NO HACER ESTO
 """
 
         self.llm = AzureChatOpenAI(
@@ -255,6 +257,7 @@ Usuario: "Cambia tus ojos a azul y baila"
         
         try:
             task_module.miscellaneous.play_animation("Stand/Waiting/Think_3")
+            task_module.set_eye_color(red=255,green=255,blue=255)
             print(f'El usuario dijo: "{transcription_text}"')
 
             transcription_text = "Tu sistema de transcripcion de texto acaba de escuchar a la persona en frente tuyo decir esto: " + transcription_text + "Ten en cuenta que la transcripcion puede tener errores menores, has tu mejor esfuerzo por extraer informacion de lo que entiendas. Usa las herramientas necesarias para resolver lo que el usuario te pidio y siempre usa la herramienta robot_speak para hablar con el usuario, de lo contrario te quedaras callado''"
