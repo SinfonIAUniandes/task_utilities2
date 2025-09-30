@@ -208,7 +208,7 @@ class RealtimeRobotAgent:
         # Esperar a que los servicios estén listos
         time.sleep(2)
 
-        context = task_module.load_robot_context(robot_name=self.robot_name,language="espanol") + "Responde de una manera agradable y sencilla y NO devuelvas formatos extraños como markdown."
+        context = task_module.load_robot_context(robot_name=self.robot_name,language="espanol") + "Responde de una manera agradable y sencilla usando la herramienta 'robot_speak' y NO devuelvas formatos extraños como markdown."
 
         self.llm = AzureChatOpenAI(
             azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
@@ -240,6 +240,8 @@ class RealtimeRobotAgent:
             task_module.miscellaneous.play_animation("Stand/Waiting/Think_3")
             print(f'El usuario dijo: "{transcription_text}"')
 
+            transcription_text = "Tu sistema de transcripcion de texto acaba de escuchar a la persona en frente tuyo decir esto: " + transcription_text + "Ten en cuenta que la transcripcion puede tener errores menores, has tu mejor esfuerzo por extraer informacion de lo que entiendas. Usa las herramientas necesarias para resolver lo que el usuario te pidio y siempre usa la herramienta robot_speak para hablar con el usuario, de lo contrario te quedaras callado''"
+
             # Deshabilitar la transcripción para evitar un bucle de retroalimentación
             print("Deshabilitando la transcripción durante la respuesta...")
             task_module.speech.set_transcription_mode(enabled=False)
@@ -267,13 +269,14 @@ class RealtimeRobotAgent:
                 # Si el mensaje final del agente es una respuesta de texto (no una llamada a herramienta), hacer que el robot la hable.
                 # Si el agente llamó a una herramienta (como robot_speak), la ejecución de la herramienta ya ocurrió.
                 # En una configuración ReAct estándar, el mensaje final de la IA es la respuesta hablada.
-                task_module.speech.say(final_response_text, animated_say=False,language_say="Spanish")
+                #task_module.speech.say(final_response_text, animated_say=False,language_say="Spanish")
+                pass
                 
             # Si el mensaje final *fue* una llamada a herramienta, la ejecución de la herramienta habría ocurrido 
             # dentro del bucle del agente, y la herramienta `robot_speak` habría manejado la salida.
             
             # Pequeño retraso para asegurar que cualquier acción del robot se complete
-            time.sleep(1)
+            time.sleep(0.5)
             
         except Exception as e:
             print(f"Error al procesar la transcripción: {e}")
@@ -286,7 +289,6 @@ class RealtimeRobotAgent:
         finally:
             # Siempre volver a habilitar la transcripción
             print("Volviendo a habilitar la transcripción...")
-            time.sleep(0.5)  # Breve pausa antes de volver a habilitar
             task_module.speech.set_transcription_mode(enabled=True, language='es')
             self.is_processing = False
     
