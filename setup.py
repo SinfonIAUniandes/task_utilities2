@@ -25,7 +25,9 @@ setup(
             'manipulation_example = task_utilities2.manipulation_example:main',
             'minimal_robot_agent = task_utilities2.minimal_robot_agent_example:main',
             'realtime_robot_agent = task_utilities2.realtime_robot_agent:main',
-            'agente_en_tiempo_real = task_utilities2.agente_en_tiempo_real:main'
+            'agente_en_tiempo_real = task_utilities2.agente_en_tiempo_real:main',
+            'orion_agente_en_tiempo_real = task_utilities2.orion_agente_en_tiempo_real:main',
+
         ],
     },
 )

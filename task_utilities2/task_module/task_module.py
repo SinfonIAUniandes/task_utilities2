@@ -154,6 +154,9 @@ class TaskModule(Node):
             self.miscellaneous.go_to_posture("Stand")
             time.sleep(1)
             self.miscellaneous.toggle_breathing("All", False)
+            time.sleep(1)
+            self.set_eye_color(red=255,green=255,blue=255)
+            self.set_ear_color(ear="EarLeds",red=255,green=255,blue=255)
         if self._check_proxy_availability('speech'):
             self.speech.set_volume(70)
     
@@ -166,6 +169,9 @@ class TaskModule(Node):
             self.miscellaneous.go_to_posture("Stand")
             time.sleep(1)
             self.miscellaneous.toggle_breathing("All", True)
+            time.sleep(1)
+            self.set_eye_color(red=255,green=255,blue=255)
+            self.set_ear_color(ear="EarLeds",red=255,green=255,blue=255)
         if self._check_proxy_availability('speech'):
             self.speech.set_volume(70)
 
@@ -206,7 +212,7 @@ class TaskModule(Node):
             self.get_logger().error(f"Error loading context file: {e}")
             return False
     
-    def set_eye_color(self, red: int = 0, green: int = 0, blue: int = 0, duration: float = 0.0) -> bool:
+    def set_eye_color(self, red: int = 0, green: int = 0, blue: int = 0, duration: float = 0.1) -> bool:
         """
         Set the color of the robot's eyes.
         

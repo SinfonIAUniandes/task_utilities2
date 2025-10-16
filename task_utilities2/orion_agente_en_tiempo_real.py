@@ -20,7 +20,7 @@ rclpy.init()
 # Crear instancia de TaskModule
 task_module = TaskModule(
     node_name="realtime_robot_agent",
-    robot_name="opera",
+    robot_name="orion",
     enable_speech=True,
     enable_miscellaneous=True
 )
@@ -71,36 +71,6 @@ def get_current_time() -> str:
     current_time = datetime.now().strftime("%H:%M:%S")
     return f"La hora actual es {current_time}"
 
-@tool
-def play_dance(dance_name: str) -> str:
-    """Hace que el robot haga un baile pasado por parametro, las opciones son:
-    arcadia
-    asereje
-    gangnamstyle
-    macarena
-    disco
-    la_bamba
-    """
-    try:
-        dance_name = dance_name.lower()
-        if dance_name=="arcadia":
-            chosen_dance = "Stand/arcadia/full_launcher"
-        elif dance_name=="asereje":
-            chosen_dance = "Stand/asereje/full_launcher"
-        elif dance_name=="gangnamstyle":
-            chosen_dance = "Stand/jgangnamstyle/full_launcher"
-        elif dance_name=="macarena":
-            chosen_dance = "Stand/Macarena/full_launcher"
-        elif dance_name=="disco":
-            chosen_dance = "Stand/disco/full_launcher"
-        elif dance_name=="la_bamba":
-            chosen_dance = "Stand/la_bamba/full_launcher"
-        task_module.miscellaneous.play_animation(chosen_dance)
-        time.sleep(1)
-        return "¡Bailado con éxito!"
-    except Exception as e:
-        return f"Error al tomar foto: {e}"
-    
 @tool
 def play_guitar() -> str:
     """Hace que el robot toque la guitarra"""
@@ -192,13 +162,13 @@ def perform_bow_gesture() -> str:
     except Exception as e:
         return f"Error al realizar la reverencia: {e}"
 
-tools = [robot_speak, change_eye_color, take_picture, get_current_time,play_guitar,play_dance,show_heart_gesture,make_a_call_gesture,act_like_a_zombie,drive_a_car_gesture,show_muscles,perform_bow_gesture,pose_for_picture,throw_kisses]
+tools = [robot_speak, change_eye_color, take_picture,play_guitar, get_current_time,show_heart_gesture,make_a_call_gesture,act_like_a_zombie,drive_a_car_gesture,show_muscles,perform_bow_gesture,pose_for_picture,throw_kisses]
 
 COOLDOWN_DURATION = 1.0
 class RealtimeRobotAgent:
     """Agente robot en tiempo real que responde a transcripciones de voz."""
 
-    def __init__(self, robot_name: str = "opera"):
+    def __init__(self, robot_name: str = "orion"):
         """Inicializa el agente robot en tiempo real."""
         self.robot_name = robot_name
         self.robot_agent = None
@@ -355,7 +325,7 @@ NO HAY NECESIDAD DE QUE DIGAS NADA DESPUES
 
 def main():
     """Función principal para ejecutar el agente robot en tiempo real."""
-    agent = RealtimeRobotAgent(robot_name="opera")
+    agent = RealtimeRobotAgent(robot_name="orion")
     
     try:
         # Inicializar el agente
